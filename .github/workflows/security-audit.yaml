@@ -1,0 +1,33 @@
+# SPDX-FileCopyrightText: The gigtags authors
+# SPDX-License-Identifier: CC0-1.0
+
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow
+
+name: security-audit
+
+on:
+  push:
+    paths:
+      - '**/Cargo.toml'
+  #schedule:
+  #  - cron: '0 0 * * *'
+  workflow_dispatch:
+
+jobs:
+  security-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      # TODO: Remove manual installation of toolchain after
+      # https://github.com/actions-rs/audit-check/issues/215
+      # has been resolved.
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          override: true
+
+      - uses: actions-rs/audit-check@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}

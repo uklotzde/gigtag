@@ -1,0 +1,20 @@
+# SPDX-FileCopyrightText: The gigtags authors
+# SPDX-License-Identifier: CC0-1.0
+
+[package]
+name = "gigtags"
+description = "A simple, textual tagging system for DJs."
+version = "0.0.0"
+license = "MPL-2.0"
+readme = "README.md"
+repository = "https://github.com/uklotzde/gigtags"
+keywords = ["music", "dj", "tagging"]
+#categories = ["asynchronous", "concurrency"]
+edition = "2021"
+
+[dependencies]
+thiserror = "1.0.31"
+
+[features]
+default = []
+
