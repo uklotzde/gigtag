@@ -22,12 +22,12 @@ A _gig tag_ is a flat structure with the following, pre-defined fields or compon
 
 All components are optional with the following restrictions:
 
-- A valid _gig tag_ must have a _label_ or a _facet_
-- If a _gig tag_ has a _facet_ it must also have a _label_ or _props_
+- A valid _gig tag_ must have a _label_ or a _facet_.
+- A _gig tag_ that has only a _facet_ or only has _props_ is invalid.
 
 ### Label
 
-A _label_ is a non-empty, case-aware string that contains freeform text without
+A _label_ is a non-empty string that contains arbitrary text without
 leading/trailing whitespace.
 
 Labels are supposed to be edited by users and are displayed verbatim in the UI.
@@ -43,18 +43,23 @@ Labels are supposed to be edited by users and are displayed verbatim in the UI.
 ### Facet
 
 The same content rules that apply to _labels_ also apply to _facets_.
+Moreover facets must not start with a leading slash `/` character that
+would otherwise interfere with the serialization format (see below).
 
 Facets serve a different semantic purpose than labels. They are used for
 categorizing, namespacing or grouping a set of labels or for defining the
 context of associated properties.
 
-Facets are supposed to encode pre-defined identifiers that are neither
+Facets are supposed to represent pre-defined identifiers that are neither
 editable nor directly displayed in the UI.
 
-Facets that consist of 8 decimal digits have a special meaning: Those
-numbers encode ISO 8601 calendar dates without a time zone in the format
-`yyyyMMdd`. These so called _date facets_ are used for anchoring tags
-chronologically.
+#### Date facets
+
+Facets that consist of 8 decimal digits and nothing else are reserved
+for encoding date information. Those numbers encode ISO 8601 calendar
+dates without a time zone in the format `yyyyMMdd`.
+
+These so called _date facets_ are used for anchoring tags chronologically.
 
 #### Examples
 
@@ -70,9 +75,12 @@ Custom _properties_ could be attached to tags, abbreviated as _props_.
 
 Properties are represented as a non-empty, ordered _list_ of key/value pairs.
 
-Both keys and values are arbitrary strings that could even include
+_Keys_ are non-empty strings that contain arbitrary text without
 leading/trailing whitespace. There are no restrictions regarding the
 uniqueness of keys, i.e. duplicate keys are permitted.
+
+_Values_ are arbitrary strings without any restrictions. Empty values
+are permitted.
 
 Applications are responsible for interpreting the keys and values in their
 respective context. Facets could be used for defining this context.
