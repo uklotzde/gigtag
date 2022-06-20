@@ -31,6 +31,9 @@ config:
   # Used in README.md
   no-trailing-punctuation: false
 
+  # MD033/no-inline-html: <br> is needed for line breaks in tables
+  no-inline-html: false
+
 # Fix any fixable errors
 fix: true
 

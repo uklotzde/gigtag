@@ -1,3 +1,6 @@
+<!-- # SPDX-FileCopyrightText: The gigtags authors -->
+<!--# SPDX-License-Identifier: CC0-1.0 -->
+
 # gigtags
 
 [![Crates.io](https://img.shields.io/crates/v/gigtags.svg)](https://crates.io/crates/gigtags)
@@ -11,14 +14,16 @@ A lightweight, textual tagging system aimed at DJs for managing custom metadata.
 
 ## Structure
 
-A _gig tag_ is a flat structure with the following, pre-defined fields:
+A _gig tag_ is a flat structure with the following, pre-defined fields or components:
 
 - Label
 - Facet
 - Prop(ertie)s
 
-All attributes are optional, with the restriction that either the _label_ or
-the _facet_ must exist.
+All components are optional with the following restrictions:
+
+- A valid _gig tag_ must have a _label_ or a _facet_
+- If a _gig tag_ has a _facet_ it must also have a _label_ or _props_
 
 ### Label
 
@@ -37,7 +42,7 @@ Labels are supposed to be edited by users and are displayed verbatim in the UI.
 
 ### Facet
 
-The same content rules that apply to _labels_ als apply to _facets_.
+The same content rules that apply to _labels_ also apply to _facets_.
 
 Facets serve a different semantic purpose than labels. They are used for
 categorizing, namespacing or grouping a set of labels or for defining the
@@ -63,10 +68,11 @@ chronologically.
 
 Custom _properties_ could be attached to tags, abbreviated as _props_.
 
-Props are represented as an ordered _list_ of key/value pairs. Both keys and
-values are arbitrary strings that could even include leading/trailing whitespace.
-There are no restrictions regarding the uniqueness of keys, i.e. duplicate keys
-are permitted.
+Properties are represented as a non-empty, ordered _list_ of key/value pairs.
+
+Both keys and values are arbitrary strings that could even include
+leading/trailing whitespace. There are no restrictions regarding the
+uniqueness of keys, i.e. duplicate keys are permitted.
 
 Applications are responsible for interpreting the keys and values in their
 respective context. Facets could be used for defining this context.
@@ -80,12 +86,13 @@ Individual tags are encoded as [URI](https://en.wikipedia.org/wiki/Uniform_Resou
 > `URI       = scheme ":" ["//" authority] path ["?" query] ["#" fragment]`
 > `authority = [userinfo "@"] host [":" port]`
 
-Only the _path_, _query_, and _fragment_ components could be present, all other
-components must be absent.
+Only the _path_, _query_, and _fragment_ components could be present.
+All other components must be absent, i.e. the URI string must neither
+contain a _scheme_ nor an _authority_ component.
 
-The following table defines the mapping of fields to components:
+The following table defines the component mapping:
 
-|Tag field|URI component|
+|Tag component|URI component|
 |---|---|
 |label|[fragment](https://en.wikipedia.org/wiki/URI_fragment)|
 |facet|path|
@@ -95,13 +102,36 @@ Tags, respective their URIs, are serialized as text and
 [percent-encoded](https://en.wikipedia.org/wiki/Percent-encoding)
 according to RFC 2396/1738.
 
+Empty components are considered as absent when parsing a _gig tag_
+from an URI string.
+
+A valid _gig tag_ URI contains either a single `?` character, or a
+single `#` character, or both of them. This is also beneficial for
+distinguishing encoded _gig tags_ from arbitrary text.
+
 #### Examples
+
+The following examples show variations of the encoded string with empty components
+that are ignored when decoding the URI.
 
 |Encoded|Facet|Label|Props: Keys|Props: Values
 |---|---|---|---|---|
-|`#MyTag`||`MyTag`|
-|`20220625#Someone's%20wishlist%20for%20this%20day%`|`20220625`|`Someone's wishlist for this day`|
-|`audio-features?energy=0.78&valence=0.61`|`audio-features`||`energy`<br>`valence`|`0.78`<br>`0.61`|
+|`#MyTag`<br>`?#MyTag`||`MyTag`|
+|`20220625#Someone%27s%20wishlist%20for%20this%20day%`<br>`20220625?#Someone%27s%20wishlist%20for%20this%20day%`|`20220625`|`Someone's wishlist for this day`|
+|`audio-features?energy=0.78&valence=0.61`<br>`audio-features?energy=0.78&valence=0.61#`|`audio-features`||`energy`<br>`valence`|`0.78`<br>`0.61`|
+
+#### Examples (invalid)
+
+The following tokens do not represent valid _gig tags_:
+
+|Encoded|Comment|
+|---|---|
+|`https://#MyTag`|scheme is present|
+|`https://#MyTag`|scheme is present|
+|`MyTag`|only a facet, but neither a label nor props|
+|`#`|empty label is considered as absent|
+|`?`|empty facet and props are considered as absent|
+|`?#`|empty facet, props, and label are considered as absent|
 
 ### Multiple tags
 
@@ -110,7 +140,7 @@ according to RFC 2396/1738.
 Multiple tags are formatted and stored as text by concatenating the corresponding,
 encoded URIs. Subsequent URIs are separated by whitespace, e.g. a single ASCII space character.
 
-#### Retro-fitting
+##### Retro-fitting
 
 Often it is not possible to store the encoded _gig tags_ in a reserved field.
 In this case _gig tags_ could appended to any text field by separating them
@@ -119,15 +149,19 @@ with arbitrary whitespace from the preceding text.
 #### Parsing
 
 Text is split into tokens that are separated by whitespace. Parsing starts with the last
-token and continues from back to front.
+token and continues from back to front. It stops when encountering a token that could
+not be parsed as a valid _gig tag_.
 
-The first token that could not be parsed as a valid _gig tag_ is considered the last token
-of the preceding text. The preceding text including this token and the following whitespace
+##### Retro-fitting
+
+The first token that could not be parsed as a valid _gig tag_ is considered the last
+token of the preceding text. The preceding text including this token and the whitespace
 until the first valid _gig tag_ token must be preserved as an _undecoded prefix_.
 
-The _undecoded prefix_ could later be prepended to the re-encoded _gig tags_.
-This ensure that only whitespace characters could get lost on the decode/encode roundtrip,
-i.e. when unintentionally parsing arbitrary words from the preceding text as valid _gig tags_
+When re-encoding the _gig tags_ the _undecoded prefix_ that was captured during parsing
+must be prepended to the re-encoded _gig tags_ string. This rule ensures that only
+whitespace characters could get lost during a decode/re-encode roundtrip, i.e. when
+unintentionally parsing arbitrary words from the preceding text as valid _gig tags_
 (false positives).
 
 ## Storage
@@ -143,7 +177,7 @@ _Content Group_ field of audio files:
 
 ## License
 
-Licensed under the Mozilla Public License 2.0 (MPL-2.0) (see [LICENSE](LICENSE) or <https://www.mozilla.org/MPL/2.0/>).
+Licensed under the Mozilla Public License 2.0 (MPL-2.0) (see [MPL-2.0.txt](LICENSES/MPL-2.0.txt) or <https://www.mozilla.org/MPL/2.0/>).
 
 Permissions of this copyleft license are conditioned on making available source code of licensed files and modifications of those files under the same license (or in certain cases, one of the GNU licenses). Copyright and license notices must be preserved. Contributors provide an express grant of patent rights. However, a larger work using the licensed work may be distributed under different terms and without source code for files added in the larger work.
 
