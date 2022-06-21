@@ -25,6 +25,7 @@ pub mod docs {
 }
 
 use std::{
+    cmp::Ordering,
     collections::HashSet,
     fmt,
     str::{FromStr, Utf8Error},
@@ -535,6 +536,31 @@ impl DecodedTags {
         let mut encoded: HashSet<_> = self.tags.iter().map(ToString::to_string).collect();
         self.tags
             .retain(|tag| encoded.take(&tag.to_string()).is_some());
+    }
+
+    /// Reorder tags with date-like facets by their date-like suffix (descending).
+    ///
+    /// Tags with a date-like facet are sorted after all other tags.
+    /// Tags with a date-like facet are sorted in descending order by their date-like suffix.
+    pub fn reorder_date_like(&mut self) {
+        self.tags.sort_by(|lhs, rhs| {
+            if rhs.has_facet_with_date_like_suffix() {
+                if lhs.has_facet_with_date_like_suffix() {
+                    let (_, lhs_suffix) =
+                        try_split_facet_into_prefix_and_date_like_suffix(lhs.facet()).unwrap();
+                    let (_, rhs_suffix) =
+                        try_split_facet_into_prefix_and_date_like_suffix(rhs.facet()).unwrap();
+                    // Descending order by decimal digits encoded as ASCII chars
+                    rhs_suffix.cmp(lhs_suffix)
+                } else {
+                    Ordering::Greater
+                }
+            } else if lhs.has_facet_with_date_like_suffix() {
+                Ordering::Less
+            } else {
+                Ordering::Equal
+            }
+        })
     }
 }
 
