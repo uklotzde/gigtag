@@ -179,7 +179,7 @@ impl Tag {
     /// The date itself might not be valid.
     #[must_use]
     pub fn has_facet_with_date_suffix(&self) -> bool {
-        facet_date_suffix_regex().is_match(self.facet().as_bytes())
+        facet_has_date_suffix(self.facet())
     }
 
     /// Check if the tag is valid.
@@ -192,20 +192,45 @@ impl Tag {
 
 const DATE_SUFFIX_FORMAT: &[FormatItem<'static>] = format_description!("~[year][month][day]");
 
-/// Try to parse a date from a facet.
+/// Check for a date suffix in the facet.
+///
+/// The date itself might not be valid.
 #[must_use]
-pub fn try_parse_date_facet(facet: &Facet) -> Option<Date> {
+pub fn facet_has_date_suffix(facet: &Facet) -> bool {
+    facet_date_suffix_regex().is_match(facet.as_bytes())
+}
+
+/// Split a facet into a prefix and the date suffix.
+///
+/// The date suffix might not contain a valid date.
+#[must_use]
+pub fn try_split_facet_into_prefix_and_date_suffix(facet: &Facet) -> Option<(&str, &str)> {
     if facet.len() < 9 {
         return None;
     }
-    let date_suffix = &facet[facet.len() - 9..];
+    let prefix_len = facet.len() - 9;
+    let date_suffix = &facet[prefix_len..];
     if !date_suffix.is_ascii() {
         return None;
     }
-    Date::parse(date_suffix, DATE_SUFFIX_FORMAT).ok()
+    let prefix = &facet[..prefix_len];
+    (prefix, date_suffix).into()
 }
 
-/// Format a [`Date`] as a facet.
+/// Split a facet into a prefix and the date suffix.
+///
+/// The date suffix is split off even if parsing fails.
+#[must_use]
+pub fn try_split_facet_into_prefix_and_date(facet: &Facet) -> Option<(&str, Option<Date>)> {
+    let (prefix, date_suffix) = try_split_facet_into_prefix_and_date_suffix(facet)?;
+    let date = Date::parse(date_suffix, DATE_SUFFIX_FORMAT).ok();
+    (prefix, date).into()
+}
+
+/// Concatenate a prefix and [`Date`] suffix to a facet.
+///
+/// The prefix string must not end with trailing whitespace,
+/// otherwise the resulting facet is invalid.
 ///
 /// # Errors
 ///
@@ -215,25 +240,20 @@ pub fn format_date_facet(prefix: &str, date: Date) -> Result<Facet, time::error:
     Ok(format_compact!("{prefix}{suffix}"))
 }
 
-/// Format a [`Date`] as a facet.
+/// Concatenate a prefix and [`Date`] suffix to a facet.
+///
+/// The prefix string must not end with trailing whitespace,
+/// otherwise the resulting facet is invalid.
 ///
 /// # Errors
 ///
 /// Returns an error if formatting of the given `date` fails.
-pub fn format_date_facet_with_args(
+pub fn format_date_facet_args(
     prefix_args: fmt::Arguments<'_>,
     date: Date,
 ) -> Result<Facet, time::error::Format> {
     let suffix = date.format(DATE_SUFFIX_FORMAT)?;
     Ok(format_compact!("{prefix_args}{suffix}"))
-}
-
-impl Tag {
-    /// Try to parse the tag's facet as a date.
-    #[must_use]
-    pub fn facet_date(&self) -> Option<Date> {
-        try_parse_date_facet(self.facet())
-    }
 }
 
 mod encoding {
@@ -574,37 +594,81 @@ pub mod tests {
     }
 
     #[test]
-    fn date_facets() {
+    fn try_split_facet_into_prefix_and_date_should_accept_and_preserve_invalid_whitespace() {
         let date = Date::from_calendar_date(2022, time::Month::June, 25).unwrap();
-        let facet_with_date_only: Facet = "~20220625".into();
-        let facet_with_text_and_date: Facet = "text~20220625".into();
-
-        assert_eq!(date, try_parse_date_facet(&facet_with_date_only).unwrap());
+        let facet: Facet = "~20220625".into();
         assert_eq!(
-            date,
-            try_parse_date_facet(&facet_with_text_and_date).unwrap()
+            ("", Some(date)),
+            try_split_facet_into_prefix_and_date(&facet).unwrap()
         );
-        assert!(try_parse_date_facet(&("2022062".into())).is_none());
-        assert!(try_parse_date_facet(&("20220230".into())).is_none());
+        let facet: Facet = " \t \n ~20220625".into();
+        assert_eq!(
+            (" \t \n ", Some(date)),
+            try_split_facet_into_prefix_and_date(&facet).unwrap()
+        );
+        let facet: Facet = "\tabc~20220625".into();
+        assert_eq!(
+            ("\tabc", Some(date)),
+            try_split_facet_into_prefix_and_date(&facet).unwrap()
+        );
+    }
 
+    #[test]
+    fn try_split_facet_into_prefix_and_date_should_ignore_invalid_dates() {
+        let facet: Facet = "~00000000".into();
+        assert_eq!(
+            ("", "~00000000"),
+            try_split_facet_into_prefix_and_date_suffix(&facet).unwrap()
+        );
+        assert_eq!(
+            ("", None),
+            try_split_facet_into_prefix_and_date(&facet).unwrap()
+        );
+        let facet: Facet = "abc~99999999".into();
+        assert_eq!(
+            ("abc", "~99999999"),
+            try_split_facet_into_prefix_and_date_suffix(&facet).unwrap()
+        );
+        assert_eq!(
+            ("abc", None),
+            try_split_facet_into_prefix_and_date(&facet).unwrap()
+        );
+        let facet: Facet = "abc ~19700230".into();
+        assert_eq!(
+            ("abc ", "~19700230"),
+            try_split_facet_into_prefix_and_date_suffix(&facet).unwrap()
+        );
+        assert_eq!(
+            ("abc ", None),
+            try_split_facet_into_prefix_and_date(&facet).unwrap()
+        );
+    }
+
+    #[test]
+    fn tags_with_date_facets() {
+        let facet_with_date_only: Facet = "~20220625".into();
         let tag = Tag {
-            label: "label".into(),
             facet: facet_with_date_only,
             ..Default::default()
         };
-        assert_eq!(tag.facet_date(), Some(date));
+        assert!(tag.is_valid());
+        assert!(tag.has_facet_with_date_suffix());
+
+        let facet_with_text_and_date: Facet = "text~20220625".into();
         let tag = Tag {
             facet: facet_with_text_and_date,
             ..tag
         };
-        assert_eq!(tag.facet_date(), Some(date));
+        assert!(tag.is_valid());
+        assert!(tag.has_facet_with_date_suffix());
 
-        let no_date_facet: Facet = "20220230".into();
+        let facet_without_date_suffix: Facet = "20220625".into();
         let tag = Tag {
-            facet: no_date_facet,
+            facet: facet_without_date_suffix,
             ..tag
         };
-        assert!(tag.facet_date().is_none());
+        assert!(!tag.is_valid());
+        assert!(!tag.has_facet_with_date_suffix());
     }
 
     #[test]
