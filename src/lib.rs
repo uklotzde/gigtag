@@ -25,7 +25,7 @@ pub mod docs {
 }
 
 use std::{
-    fmt::{self, Write},
+    fmt,
     str::{FromStr, Utf8Error},
 };
 
@@ -270,13 +270,13 @@ impl Tag {
     /// # Errors
     ///
     /// Returns an [`fmt::Error`] if writing into the buffer fails.
-    pub fn encode_into(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+    pub fn encode_into<W: fmt::Write>(&self, write: &mut W) -> fmt::Result {
         debug_assert!(self.is_valid());
         let encoded_label = percent_encode(self.label().as_bytes(), encoding::FRAGMENT);
         let encoded_facet = percent_encode(self.facet().as_bytes(), encoding::PATH);
         if !self.has_props() {
             debug_assert!(self.has_label());
-            return formatter.write_fmt(format_args!("{encoded_facet}#{encoded_label}"));
+            return write.write_fmt(format_args!("{encoded_facet}#{encoded_label}"));
         }
         let encoded_props_iter = self.props().iter().map(|Prop { key, val }| {
             let encoded_key = percent_encode(key.as_bytes(), encoding::QUERY);
@@ -286,11 +286,11 @@ impl Tag {
         });
         let encoded_props = itertools::join(encoded_props_iter, "&");
         if self.has_label() {
-            formatter.write_fmt(format_args!(
+            write.write_fmt(format_args!(
                 "{encoded_facet}?{encoded_props}#{encoded_label}"
             ))
         } else {
-            formatter.write_fmt(format_args!("{encoded_facet}?{encoded_props}"))
+            write.write_fmt(format_args!("{encoded_facet}?{encoded_props}"))
         }
     }
 
@@ -453,6 +453,80 @@ impl FromStr for Tag {
         // This implementation permits leading/trailing whitespace,
         // other than `Tag::decode_str()` which is more strict.
         Tag::decode_str(input.trim())
+    }
+}
+
+/// Tags decoded from a text field.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DecodedTags {
+    /// Valid, decoded tags
+    pub tags: Vec<Tag>,
+
+    /// The remaining, undecoded prefix.
+    pub undecoded_prefix: String,
+}
+
+const JOIN_ENCODED_TAGS_CHAR: char = ' ';
+
+impl DecodedTags {
+    /// Re-encode the contents.
+    ///
+    /// # Errors
+    ///
+    /// Returns an [`fmt::Error`] if writing into the buffer fails.
+    pub fn encode_into<W: fmt::Write>(&self, write: &mut W) -> fmt::Result {
+        write.write_str(&self.undecoded_prefix)?;
+        // Append a separated before the first encoded tag of the undecoded prefix
+        // is not empty and does not end with a whitespace.
+        let mut append_separator = !self.undecoded_prefix.is_empty()
+            && self.undecoded_prefix.trim_end() == self.undecoded_prefix;
+        for tag in &self.tags {
+            if append_separator {
+                write.write_char(JOIN_ENCODED_TAGS_CHAR)?;
+            }
+            tag.encode_into(write)?;
+            append_separator = true;
+        }
+        Ok(())
+    }
+
+    /// Decode from a string slice.
+    #[must_use]
+    pub fn decode_str(encoded: &str) -> Self {
+        let mut undecoded_prefix = encoded;
+        let mut tags = vec![];
+        while !undecoded_prefix.is_empty() {
+            let remainder = undecoded_prefix.trim_end();
+            if remainder.is_empty() {
+                break;
+            }
+            let (next_remainder, next_token) =
+                if let Some((i, _)) = remainder.rmatch_indices(char::is_whitespace).next() {
+                    debug_assert!(i < remainder.len());
+                    // Next token might be preceded by whitespace
+                    (&remainder[..=i], &remainder[i + 1..])
+                } else {
+                    // First token without leading whitespace
+                    ("", remainder)
+                };
+            debug_assert!(!next_token.is_empty());
+            debug_assert_eq!(next_token.trim(), next_token);
+            if let Ok(tag) = Tag::decode_str(next_token) {
+                tags.push(tag);
+                undecoded_prefix = next_remainder;
+            } else {
+                break;
+            }
+        }
+        tags.reverse();
+        if undecoded_prefix.trim().is_empty() {
+            // Discard any preceding whitespace if all tokens have been decoded as tags
+            undecoded_prefix = "";
+        }
+        Self {
+            tags,
+            undecoded_prefix: undecoded_prefix.to_owned(),
+        }
     }
 }
 
@@ -702,36 +776,34 @@ pub mod tests {
         assert!(Tag::decode_str("~20220625?#").is_ok());
         assert!(Tag::decode_str("?#label").is_ok());
     }
-}
 
-/// Tags decoded from a text field.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct DecodedTags {
-    /// Valid, decoded tags
-    pub tags: Vec<Tag>,
+    #[test]
+    fn decode_and_reencode_single_tag_without_leading_or_trailing_whitespace() {
+        let decoded_tags = DecodedTags::decode_str("#Tag1");
+        assert!(decoded_tags.undecoded_prefix.is_empty());
+        let mut reencoded = String::new();
+        assert!(decoded_tags.encode_into(&mut reencoded).is_ok());
+        assert_eq!("#Tag1", reencoded);
+    }
 
-    /// The remaining, undecoded prefix.
-    pub undecoded_prefix: String,
-}
+    #[test]
+    fn decode_and_reencode_tags_exhaustive() {
+        let decoded_tags =
+            DecodedTags::decode_str("  #Tag1\t#Tag%202  wishlist~20220526#Someone \n");
+        assert!(decoded_tags.undecoded_prefix.is_empty());
+        let mut reencoded = String::new();
+        assert!(decoded_tags.encode_into(&mut reencoded).is_ok());
+        assert_eq!("#Tag1 #Tag%202 wishlist~20220526#Someone", reencoded);
+    }
 
-const JOIN_ENCODED_TAGS_CHAR: char = ' ';
-
-impl DecodedTags {
-    /// Re-encode the contents.
-    ///
-    /// # Errors
-    ///
-    /// Returns an [`fmt::Error`] if writing into the buffer fails.
-    pub fn encode_into(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        formatter.write_str(&self.undecoded_prefix)?;
-        let mut append_separator = self.undecoded_prefix.trim_end() == self.undecoded_prefix;
-        for tag in &self.tags {
-            if append_separator {
-                formatter.write_char(JOIN_ENCODED_TAGS_CHAR)?;
-            }
-            tag.encode_into(formatter)?;
-            append_separator = true;
-        }
-        Ok(())
+    #[test]
+    fn decode_and_reencode_tags_partially() {
+        let decoded_tags =
+            DecodedTags::decode_str("This text should be preserved including the trailing newline\n#Tag1\t#Tag%202  wishlist~20220526#Someone \n");
+        assert_eq!(
+            "This text should be preserved including the trailing newline\n",
+            decoded_tags.undecoded_prefix
+        );
+        assert_eq!(3, decoded_tags.tags.len());
     }
 }
