@@ -54,24 +54,46 @@ context of associated properties.
 Facets are supposed to represent pre-defined identifiers that are neither
 editable nor directly displayed in the UI.
 
-#### Date facets
+#### Date-like facets
 
 A reserved suffix could be used to encode a calendar date into facets.
 
-Facets that end with an `~` character followed by 8 decimal digits are
-chronologically anchored at a calendar date. The digits encode an
-ISO 8601 calendar date without a time zone in the format `yyyyMMdd`.
+Facets that end with a `~` character followed by 8 decimal digits
+are considered as _date-like facets_. The digits are supposed to
+encode an ISO 8601 calendar date without a time zone in the format
+`yyyyMMdd`.
 
-The `~` character of the date suffix must follow the preceding text without
-any intermediate whitespace, such that the remaining facet prefix after
-stripping the date suffix itself remains a valid facet.
+Facets considered as _date-like_ even if the 8 decimal digits do
+not encode a valid date. This less restrictive constraints have
+been chosen deliberately to allow using regular expressions for
+recognizing date-like facets.
 
-#### Examples:
+The `~` character of the date suffix must follow the preceding text
+without any intermediate whitespace. Thus the remaining prefix after
+stripping the date-like suffix remains a valid facet.
 
-|Facet|Comment|
+The following regular expressions could be used:
+
+|Regex|Description|
+|---|---|
+|`(^|[^\s])~\d{8}$`|Recognize date-like facets|
+|`[\s]+~\d{8}$`|Reject facets with a date-like suffix if preceded by whitespace|
+
+#### Valid examples
+
+|Facet|Description|
 |---|---|
 |`spotify`|a tag for encoding properties related to Spotify|
-|`~20220625`<br>`played~20220625`|_date facets_ that denote the calendar day 2022-06-25 in any time zone|
+|`~20220625`|date-like facet without a prefix that denotes the calendar day 2022-06-25 in any time zone|
+|`wishlist~20220625`|date-like facet with prefix `wishlist` that denotes the calendar day 2022-06-25 in any time zone|
+|`~00000000`|date-like facet without a prefix and an invalid date|
+|`abc xyz~99999999`|date-like facet with prefix `abc xyz` and an invalid date|
+
+#### Invalid examples
+
+|Facet|Description|
+|---|---|
+|`played ~20220625`|invalid date-like facet that must be rejected by the parser|
 
 ### Prop(ertie)s
 
