@@ -25,6 +25,7 @@ pub mod docs {
 }
 
 use std::{
+    collections::HashSet,
     fmt,
     str::{FromStr, Utf8Error},
 };
@@ -469,27 +470,6 @@ pub struct DecodedTags {
 const JOIN_ENCODED_TAGS_CHAR: char = ' ';
 
 impl DecodedTags {
-    /// Re-encode the contents.
-    ///
-    /// # Errors
-    ///
-    /// Returns an [`fmt::Error`] if writing into the buffer fails.
-    pub fn encode_into<W: fmt::Write>(&self, write: &mut W) -> fmt::Result {
-        write.write_str(&self.undecoded_prefix)?;
-        // Append a separated before the first encoded tag of the undecoded prefix
-        // is not empty and does not end with a whitespace.
-        let mut append_separator = !self.undecoded_prefix.is_empty()
-            && self.undecoded_prefix.trim_end() == self.undecoded_prefix;
-        for tag in &self.tags {
-            if append_separator {
-                write.write_char(JOIN_ENCODED_TAGS_CHAR)?;
-            }
-            tag.encode_into(write)?;
-            append_separator = true;
-        }
-        Ok(())
-    }
-
     /// Decode from a string slice.
     #[must_use]
     pub fn decode_str(encoded: &str) -> Self {
@@ -527,6 +507,34 @@ impl DecodedTags {
             tags,
             undecoded_prefix: undecoded_prefix.to_owned(),
         }
+    }
+
+    /// Re-encode the contents.
+    ///
+    /// # Errors
+    ///
+    /// Returns an [`fmt::Error`] if writing into the buffer fails.
+    pub fn encode_into<W: fmt::Write>(&self, write: &mut W) -> fmt::Result {
+        write.write_str(&self.undecoded_prefix)?;
+        // Append a separated before the first encoded tag of the undecoded prefix
+        // is not empty and does not end with a whitespace.
+        let mut append_separator = !self.undecoded_prefix.is_empty()
+            && self.undecoded_prefix.trim_end() == self.undecoded_prefix;
+        for tag in &self.tags {
+            if append_separator {
+                write.write_char(JOIN_ENCODED_TAGS_CHAR)?;
+            }
+            tag.encode_into(write)?;
+            append_separator = true;
+        }
+        Ok(())
+    }
+
+    /// Remove duplicate tags.
+    pub fn dedup(&mut self) {
+        let mut encoded: HashSet<_> = self.tags.iter().map(ToString::to_string).collect();
+        self.tags
+            .retain(|tag| encoded.take(&tag.to_string()).is_some());
     }
 }
 
