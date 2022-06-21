@@ -17,13 +17,14 @@ A lightweight, textual tagging system aimed at DJs for managing custom metadata.
 A _gig tag_ is a flat structure with the following, pre-defined fields or components:
 
 - Label
-- Facet
+- Facet (including an optional calendar date)
 - Prop(ertie)s
 
 All components are optional with the following restrictions:
 
 - A valid _gig tag_ must have a _label_ or a _facet_.
-- A _gig tag_ that has only a _facet_ or only has _props_ is invalid.
+- A valid _gig tag_ with only a facet and neither a label or props is valid,
+  if the facet has a date suffix
 
 ### Label
 
@@ -55,19 +56,22 @@ editable nor directly displayed in the UI.
 
 #### Date facets
 
-Facets that consist of 8 decimal digits and nothing else are reserved
-for encoding date information. Those numbers encode ISO 8601 calendar
-dates without a time zone in the format `yyyyMMdd`.
+A reserved suffix could be used to encode a calendar date into facets.
 
-These so called _date facets_ are used for anchoring tags chronologically.
+Facets that end with an `~` character followed by 8 decimal digits are
+chronologically anchored at a calendar date. The digits encode an
+ISO 8601 calendar date without a time zone in the format `yyyyMMdd`.
 
-#### Examples
+The `~` character of the date suffix must follow the preceding text without
+any intermediate whitespace, such that the remaining facet prefix after
+stripping the date suffix itself remains a valid facet.
+
+#### Examples:
 
 |Facet|Comment|
 |---|---|
-|`audio-features`|a tag for encoding Spotify/EchoNest audio features|
-|`20220625`|a _date facet_ that denotes the calendar day 2022-06-25 in any time zone|
-|`20220625 Some Text`|an ordinary facet that does not denote a date, even though it is prefixed with 8 decimal digits that could denote a date|
+|`spotify`|a tag for encoding properties related to Spotify|
+|`~20220625`<br>`played~20220625`|_date facets_ that denote the calendar day 2022-06-25 in any time zone|
 
 ### Prop(ertie)s
 
@@ -122,11 +126,12 @@ distinguishing encoded _gig tags_ from arbitrary text.
 The following examples show variations of the encoded string with empty components
 that are ignored when decoding the URI.
 
-|Encoded|Facet|Label|Props: Keys|Props: Values
-|---|---|---|---|---|
-|`#MyTag`<br>`?#MyTag`||`MyTag`|
-|`20220625#Someone%27s%20wishlist%20for%20this%20day%`<br>`20220625?#Someone%27s%20wishlist%20for%20this%20day%`|`20220625`|`Someone's wishlist for this day`|
-|`audio-features?energy=0.78&valence=0.61`<br>`audio-features?energy=0.78&valence=0.61#`|`audio-features`||`energy`<br>`valence`|`0.78`<br>`0.61`|
+|Encoded|Facet|Date|Label|Props: Keys|Props: Values
+|---|---|---|---|---|---|
+|`#MyTag`<br>`?#MyTag`|||`MyTag`|
+|`wishlist~20220625#For%20you`|`wishlist~20220625`|2022-06-25|`For you`|
+|`played~20220625`<br>`played~20220625?`<br>`played20220625#`<br>`played~20220625?#`|`played~20220625`|2022-06-25|
+|`audio-features?energy=0.78&valence=0.61`<br>`audio-features?energy=0.78&valence=0.61#`|`audio-features`|||`energy`<br>`valence`|`0.78`<br>`0.61`|
 
 #### Examples (invalid)
 
@@ -134,12 +139,15 @@ The following tokens do not represent valid _gig tags_:
 
 |Encoded|Comment|
 |---|---|
-|`https://#MyTag`|scheme is present|
-|`https://#MyTag`|scheme is present|
-|`MyTag`|only a facet, but neither a label nor props|
-|`#`|empty label is considered as absent|
-|`?`|empty facet and props are considered as absent|
-|`?#`|empty facet, props, and label are considered as absent|
+|`https://#MyTag`|URL scheme/authority are present|
+|`My%20Tag`|Only a facet without a date, neither a label nor props|
+|`/my-facet#Label`|Facet starts with a `/`|
+|`wishlist%20~20220625#Label`|Date suffix in facet is prefixed by whitespace|
+|`?=val#Label`|Empty property key|
+|`?key=my+val#My label`|Special characters like `+` and whitespace are not percent-encoded|
+|`#`|Empty label is considered as absent|
+|`?`|Empty facet and props are considered as absent|
+|`?#`|Empty facet, props, and label are considered as absent|
 
 ### Multiple tags
 

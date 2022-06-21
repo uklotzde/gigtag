@@ -29,9 +29,10 @@ use std::{
     str::{FromStr, Utf8Error},
 };
 
-use compact_str::CompactString;
+use compact_str::{format_compact, CompactString};
 use once_cell::sync::OnceCell;
 use percent_encoding::{percent_decode, percent_encode};
+use regex::bytes::Regex;
 use thiserror::Error;
 use time::{format_description::FormatItem, macros::format_description, Date};
 use url::Url;
@@ -173,22 +174,35 @@ impl Tag {
         &self.props
     }
 
+    /// Check for a date suffix in the facet.
+    ///
+    /// The date itself might not be valid.
+    #[must_use]
+    pub fn has_facet_with_date_suffix(&self) -> bool {
+        facet_date_suffix_regex().is_match(self.facet().as_bytes())
+    }
+
     /// Check if the tag is valid.
     #[must_use]
     pub fn is_valid(&self) -> bool {
-        self.has_label() || (self.has_facet() && self.has_props())
+        self.has_label()
+            || (self.has_facet() && (self.has_props() || self.has_facet_with_date_suffix()))
     }
 }
 
-const DATE_FORMAT: &[FormatItem<'static>] = format_description!("[year][month][day]");
+const DATE_SUFFIX_FORMAT: &[FormatItem<'static>] = format_description!("~[year][month][day]");
 
 /// Try to parse a date from a facet.
 #[must_use]
 pub fn try_parse_date_facet(facet: &Facet) -> Option<Date> {
-    if facet.len() != 8 {
+    if facet.len() < 9 {
         return None;
     }
-    Date::parse(facet, DATE_FORMAT).ok()
+    let date_suffix = &facet[facet.len() - 9..];
+    if !date_suffix.is_ascii() {
+        return None;
+    }
+    Date::parse(date_suffix, DATE_SUFFIX_FORMAT).ok()
 }
 
 /// Format a [`Date`] as a facet.
@@ -196,21 +210,29 @@ pub fn try_parse_date_facet(facet: &Facet) -> Option<Date> {
 /// # Errors
 ///
 /// Returns an error if formatting of the given `date` fails.
-pub fn format_date_facet(date: Date) -> Result<Facet, time::error::Format> {
-    date.format(DATE_FORMAT).map(Into::into)
+pub fn format_date_facet(prefix: &str, date: Date) -> Result<Facet, time::error::Format> {
+    let suffix = date.format(DATE_SUFFIX_FORMAT)?;
+    Ok(format_compact!("{prefix}{suffix}"))
+}
+
+/// Format a [`Date`] as a facet.
+///
+/// # Errors
+///
+/// Returns an error if formatting of the given `date` fails.
+pub fn format_date_facet_with_args(
+    prefix_args: fmt::Arguments<'_>,
+    date: Date,
+) -> Result<Facet, time::error::Format> {
+    let suffix = date.format(DATE_SUFFIX_FORMAT)?;
+    Ok(format_compact!("{prefix_args}{suffix}"))
 }
 
 impl Tag {
     /// Try to parse the tag's facet as a date.
     #[must_use]
-    pub fn date_facet(&self) -> Option<Date> {
+    pub fn facet_date(&self) -> Option<Date> {
         try_parse_date_facet(self.facet())
-    }
-
-    /// Check for a valid date facet.
-    #[must_use]
-    pub fn has_date_facet(&self) -> bool {
-        self.date_facet().is_some()
     }
 }
 
@@ -310,6 +332,19 @@ fn dummy_base_url() -> &'static Url {
     })
 }
 
+static FACET_DATE_SUFFIX_REGEX: OnceCell<Regex> = OnceCell::new();
+
+fn facet_date_suffix_regex() -> &'static Regex {
+    FACET_DATE_SUFFIX_REGEX.get_or_init(|| r"(^|[^\s])~\d{8}$".parse().unwrap())
+}
+
+static INVALID_FACET_DATE_SUFFIX_REGEX: OnceCell<Regex> = OnceCell::new();
+
+fn invalid_facet_date_suffix_regex() -> &'static Regex {
+    // Reject facets with date suffixes that are preceded by a whitespace character
+    INVALID_FACET_DATE_SUFFIX_REGEX.get_or_init(|| r"[\s]+~\d{8}$".parse().unwrap())
+}
+
 impl Tag {
     /// Decode a tag from a string slice.
     ///
@@ -333,21 +368,31 @@ impl Tag {
         }
         let parse_options = Url::options().base_url(Some(dummy_base_url()));
         let url: Url = parse_options.parse(encoded)?;
-        let label_encoded = url.fragment().unwrap_or_default().as_bytes();
+        let fragment = url.fragment().unwrap_or_default();
+        debug_assert_eq!(fragment.trim(), fragment);
+        let label_encoded = fragment.as_bytes();
         let label = percent_decode(label_encoded).decode_utf8()?;
         if label.trim() != label {
             return Err(anyhow::anyhow!("leading/trailing whitespace in label '{label}'").into());
         }
         // The leading slash in the path from the dummy base URL needs to be skipped.
-        debug_assert!(!url.path().is_empty());
-        debug_assert_eq!(url.path().as_bytes()[0], b'/');
+        let path = url.path();
+        debug_assert!(!path.is_empty());
+        debug_assert_eq!(path.trim(), path);
+        debug_assert_eq!(path.as_bytes()[0], b'/');
         let facet_encoded = &url.path().as_bytes()[1..];
         let facet = percent_decode(facet_encoded).decode_utf8()?;
         if facet.trim() != facet {
             return Err(anyhow::anyhow!("leading/trailing whitespace in facet '{facet}'").into());
         }
+        if invalid_facet_date_suffix_regex().is_match(facet.as_bytes()) {
+            return Err(anyhow::anyhow!("facet with invalid date suffix '{facet}'").into());
+        }
         let mut props = vec![];
-        if let Some(query_encoded) = url.query().map(str::as_bytes) {
+        let query = url.query().unwrap_or_default();
+        debug_assert_eq!(query.trim(), query);
+        if !query.is_empty() {
+            let query_encoded = query.as_bytes();
             for keyval_encoded in query_encoded.split(|b| *b == b'&') {
                 let mut keyval_encoded_split = keyval_encoded.split(|b| *b == b'=');
                 let key_encoded = if let Some(key_encoded) = keyval_encoded_split.next() {
@@ -436,8 +481,9 @@ pub mod tests {
         //let rfc_3986_reserved_characters = "!#$&'()*+,/:;=?@[]";
         let label: Label = "My Tag (foo+bar)".into();
         let encoded_label = "My%20Tag%20(foo+bar)";
-        let facet: Facet = "a/simple//facet+with ?special#characters and whitespace".into();
-        let encoded_facet = "a/simple//facet+with%20%3Fspecial%23characters%20and%20whitespace";
+        let facet: Facet = "a/date//facet+with ?special#characters and whitespace~20220625".into();
+        let encoded_facet =
+            "a/date//facet+with%20%3Fspecial%23characters%20and%20whitespace~20220625";
         let props = vec![
             Prop {
                 key: "prop?\n \t1".into(),
@@ -530,27 +576,82 @@ pub mod tests {
     #[test]
     fn date_facets() {
         let date = Date::from_calendar_date(2022, time::Month::June, 25).unwrap();
-        let facet: Facet = "20220625".into();
+        let facet_with_date_only: Facet = "~20220625".into();
+        let facet_with_text_and_date: Facet = "text~20220625".into();
 
-        assert_eq!(date, try_parse_date_facet(&facet).unwrap());
+        assert_eq!(date, try_parse_date_facet(&facet_with_date_only).unwrap());
+        assert_eq!(
+            date,
+            try_parse_date_facet(&facet_with_text_and_date).unwrap()
+        );
         assert!(try_parse_date_facet(&("2022062".into())).is_none());
         assert!(try_parse_date_facet(&("20220230".into())).is_none());
 
         let tag = Tag {
             label: "label".into(),
-            facet,
+            facet: facet_with_date_only,
             ..Default::default()
         };
-        assert!(tag.has_date_facet());
-        assert_eq!(tag.date_facet(), Some(date));
+        assert_eq!(tag.facet_date(), Some(date));
+        let tag = Tag {
+            facet: facet_with_text_and_date,
+            ..tag
+        };
+        assert_eq!(tag.facet_date(), Some(date));
 
         let no_date_facet: Facet = "20220230".into();
         let tag = Tag {
             facet: no_date_facet,
             ..tag
         };
-        assert!(!tag.has_date_facet());
-        assert!(tag.date_facet().is_none());
+        assert!(tag.facet_date().is_none());
+    }
+
+    #[test]
+    fn has_facet_with_date_suffix() {
+        assert!(Tag {
+            facet: "~20220625".into(),
+            ..Default::default()
+        }
+        .has_facet_with_date_suffix());
+        assert!(Tag {
+            facet: "a~20220625".into(),
+            ..Default::default()
+        }
+        .has_facet_with_date_suffix());
+        assert!(!Tag {
+            facet: "a ~20220625".into(),
+            ..Default::default()
+        }
+        .has_facet_with_date_suffix());
+        assert!(!Tag {
+            facet: "a-20220625".into(),
+            ..Default::default()
+        }
+        .has_facet_with_date_suffix());
+        assert!(!Tag {
+            facet: "a20220625".into(),
+            ..Default::default()
+        }
+        .has_facet_with_date_suffix());
+    }
+
+    #[test]
+    fn should_fail_to_decode_date_facet_with_whitespace_before_suffix() {
+        assert!(Tag::decode_str("~20220625").is_ok());
+        assert!(Tag::decode_str("a%20facet~20220625").is_ok());
+        assert!(Tag::decode_str("a%20facet%20~20220625").is_err()); // space ' '
+        assert!(Tag::decode_str("a%20facet%09~20220625").is_err()); // tab '\t'
+        assert!(Tag::decode_str("a%20facet%0A~20220625").is_err()); // newline '\n'
+    }
+
+    #[test]
+    fn decoding_should_skip_empty_components() {
+        assert!(Tag::decode_str("~20220625").is_ok());
+        assert!(Tag::decode_str("~20220625?").is_ok());
+        assert!(Tag::decode_str("~20220625#").is_ok());
+        assert!(Tag::decode_str("~20220625?#").is_ok());
+        assert!(Tag::decode_str("?#label").is_ok());
     }
 }
 
@@ -574,7 +675,7 @@ impl DecodedTags {
     /// Returns an [`fmt::Error`] if writing into the buffer fails.
     pub fn encode_into(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter.write_str(&self.undecoded_prefix)?;
-        let mut append_separator = self.undecoded_prefix.trim_end() == &self.undecoded_prefix;
+        let mut append_separator = self.undecoded_prefix.trim_end() == self.undecoded_prefix;
         for tag in &self.tags {
             if append_separator {
                 formatter.write_char(JOIN_ENCODED_TAGS_CHAR)?;
