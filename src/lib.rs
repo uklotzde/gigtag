@@ -25,7 +25,7 @@ pub mod docs {
 }
 
 use std::{
-    fmt,
+    fmt::{self, Write},
     str::{FromStr, Utf8Error},
 };
 
@@ -235,7 +235,7 @@ impl Tag {
     ///
     /// # Errors
     ///
-    /// Returns an [`fmt::Error`] if writing the encoded into the buffer fails.
+    /// Returns an [`fmt::Error`] if writing into the buffer fails.
     pub fn encode_into(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         debug_assert!(self.is_valid());
         let encoded_label = percent_encode(self.label().as_bytes(), encoding::FRAGMENT);
@@ -551,5 +551,37 @@ pub mod tests {
         };
         assert!(!tag.has_date_facet());
         assert!(tag.date_facet().is_none());
+    }
+}
+
+/// Tags decoded from a text field.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DecodedTags {
+    /// Valid, decoded tags
+    pub tags: Vec<Tag>,
+
+    /// The remaining, undecoded prefix.
+    pub undecoded_prefix: String,
+}
+
+const JOIN_ENCODED_TAGS_CHAR: char = ' ';
+
+impl DecodedTags {
+    /// Re-encode the contents.
+    ///
+    /// # Errors
+    ///
+    /// Returns an [`fmt::Error`] if writing into the buffer fails.
+    pub fn encode_into(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(&self.undecoded_prefix)?;
+        let mut append_separator = self.undecoded_prefix.trim_end() == &self.undecoded_prefix;
+        for tag in &self.tags {
+            if append_separator {
+                formatter.write_char(JOIN_ENCODED_TAGS_CHAR)?;
+            }
+            tag.encode_into(formatter)?;
+            append_separator = true;
+        }
+        Ok(())
     }
 }
