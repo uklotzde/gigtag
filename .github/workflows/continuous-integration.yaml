@@ -5,14 +5,14 @@
 
 name: continuous-integration
 
+permissions:
+  contents: read
+
 on:
   pull_request:
   push:
     branches:
       - main
-
-permissions:
-  contents: read
 
 env:
   CARGO_INCREMENTAL: 0
