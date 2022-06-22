@@ -41,7 +41,9 @@ jobs:
           command: generate-lockfile
 
       - name: Setup Python
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
 
       - name: Detect code style issues (push)
         uses: pre-commit/action@v3.0.0
