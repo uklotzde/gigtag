@@ -5,14 +5,14 @@
 
 name: pre-commit
 
+permissions:
+  contents: read
+
 on:
   pull_request:
   push:
     branches:
       - '*'
-
-permissions:
-  contents: read
 
 env:
   CARGO_TERM_COLOR: always
