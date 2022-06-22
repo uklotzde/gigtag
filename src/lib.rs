@@ -542,6 +542,9 @@ impl DecodedTags {
     ///
     /// Tags with a date-like facet are sorted after all other tags.
     /// Tags with a date-like facet are sorted in descending order by their date-like suffix.
+    // Using unwrap() is safe after we already checked that
+    // the contents of both facets match the date-like format.
+    #[allow(clippy::missing_panics_doc)]
     pub fn reorder_date_like(&mut self) {
         self.tags.sort_by(|lhs, rhs| {
             if rhs.has_facet_with_date_like_suffix() {
@@ -553,14 +556,14 @@ impl DecodedTags {
                     // Descending order by decimal digits encoded as ASCII chars
                     rhs_suffix.cmp(lhs_suffix)
                 } else {
-                    Ordering::Greater
+                    Ordering::Less
                 }
             } else if lhs.has_facet_with_date_like_suffix() {
-                Ordering::Less
+                Ordering::Greater
             } else {
                 Ordering::Equal
             }
-        })
+        });
     }
 }
 
@@ -822,22 +825,47 @@ pub mod tests {
 
     #[test]
     fn decode_and_reencode_tags_exhaustive() {
-        let decoded_tags =
-            DecodedTags::decode_str("  #Tag1\t#Tag%202  wishlist~20220526#Someone \n");
-        assert!(decoded_tags.undecoded_prefix.is_empty());
+        let decoded = DecodedTags::decode_str("  #Tag1\t#Tag%202  wishlist~20220526#Someone \n");
+        assert!(decoded.undecoded_prefix.is_empty());
         let mut reencoded = String::new();
-        assert!(decoded_tags.encode_into(&mut reencoded).is_ok());
+        assert!(decoded.encode_into(&mut reencoded).is_ok());
         assert_eq!("#Tag1 #Tag%202 wishlist~20220526#Someone", reencoded);
     }
 
     #[test]
     fn decode_and_reencode_tags_partially() {
-        let decoded_tags =
+        let decoded =
             DecodedTags::decode_str("This text should be preserved including the trailing newline\n#Tag1\t#Tag%202  wishlist~20220526#Someone \n");
         assert_eq!(
             "This text should be preserved including the trailing newline\n",
-            decoded_tags.undecoded_prefix
+            decoded.undecoded_prefix
         );
-        assert_eq!(3, decoded_tags.tags.len());
+        assert_eq!(3, decoded.tags.len());
+    }
+
+    #[test]
+    fn reorder_date_like_tags() {
+        let mut decoded =
+        DecodedTags::decode_str(
+    " Arbitrary comments with\twhitespace  before the first\n valid gig tag\t ~20220624#Label
+            ~20220625#Wishlist #first_gigtag ~20220624#Label   ~20220625#Wishlist\n
+            ~20220626#Label #first_gigtag ~20220626#Label");
+        decoded.reorder_date_like();
+        let mut reencoded = String::new();
+        assert!(decoded.encode_into(&mut reencoded).is_ok());
+        assert_eq!(" Arbitrary comments with\twhitespace  before the first\n valid gig tag\t #first_gigtag #first_gigtag ~20220626#Label ~20220626#Label ~20220625#Wishlist ~20220625#Wishlist ~20220624#Label ~20220624#Label", reencoded);
+    }
+
+    #[test]
+    fn dedup_tags() {
+        let mut decoded =
+        DecodedTags::decode_str(
+    " Arbitrary comments with\twhitespace  before the first\n valid gig tag\t~20220624#Label
+            ~20220625#Wishlist #first_gigtag ~20220624#Label   ~20220625#Wishlist\n
+            ~20220626#Label #first_gigtag ~20220626#Label");
+        decoded.dedup();
+        let mut reencoded = String::new();
+        assert!(decoded.encode_into(&mut reencoded).is_ok());
+        assert_eq!(" Arbitrary comments with\twhitespace  before the first\n valid gig tag\t~20220624#Label ~20220625#Wishlist #first_gigtag ~20220626#Label", reencoded);
     }
 }
