@@ -190,21 +190,19 @@ impl Tag {
     }
 }
 
-const DATE_SUFFIX_FORMAT: &[FormatItem<'static>] = format_description!("~[year][month][day]");
-
 /// Check for a date-like suffix in the facet.
 #[must_use]
 pub fn facet_has_date_like_suffix(facet: &Facet) -> bool {
-    facet_with_date_like_suffix_regex().is_match(facet.as_bytes())
+    date_like_suffix_regex().is_match(facet.as_bytes())
 }
 
 /// Split a facet into a prefix and the date-like suffix.
 #[must_use]
 pub fn try_split_facet_into_prefix_and_date_like_suffix(facet: &Facet) -> Option<(&str, &str)> {
-    if facet.len() < 9 {
+    if facet.len() < DATE_LIKE_SUFFIX_LEN {
         return None;
     }
-    let prefix_len = facet.len() - 9;
+    let prefix_len = facet.len() - DATE_LIKE_SUFFIX_LEN;
     let date_suffix = &facet[prefix_len..];
     if !date_suffix.is_ascii() {
         return None;
@@ -350,17 +348,25 @@ fn dummy_base_url() -> &'static Url {
     })
 }
 
-static FACET_WITH_DATE_LIKE_SUFFIX_REGEX: OnceCell<Regex> = OnceCell::new();
+const DATE_SUFFIX_FORMAT: &[FormatItem<'static>] = format_description!("~[year][month][day]");
 
-fn facet_with_date_like_suffix_regex() -> &'static Regex {
-    FACET_WITH_DATE_LIKE_SUFFIX_REGEX.get_or_init(|| r"(^|[^\s])~\d{8}$".parse().unwrap())
+// ~yyyyMMdd
+const DATE_LIKE_SUFFIX_LEN: usize = 1 + 8;
+
+static DATE_LIKE_SUFFIX_REGEX: OnceCell<Regex> = OnceCell::new();
+
+fn date_like_suffix_regex() -> &'static Regex {
+    // The '~' separator of the date-like digits must not be preceded by
+    // a whitespace i.e. the facet either equals the date-like suffix
+    // or the separator is preceded by a non-whitespace character.
+    DATE_LIKE_SUFFIX_REGEX.get_or_init(|| r"(^|[^\s])~\d{8}$".parse().unwrap())
 }
 
-static FACET_WITH_INVALID_DATE_LIKE_SUFFIX_REGEX: OnceCell<Regex> = OnceCell::new();
+static INVALID_DATE_LIKE_SUFFIX_REGEX: OnceCell<Regex> = OnceCell::new();
 
-fn facet_with_invalid_date_like_suffix_regex() -> &'static Regex {
+fn invalid_date_like_suffix_regex() -> &'static Regex {
     // Reject facets with date-like suffixes that are preceded by a whitespace character
-    FACET_WITH_INVALID_DATE_LIKE_SUFFIX_REGEX.get_or_init(|| r"[\s]+~\d{8}$".parse().unwrap())
+    INVALID_DATE_LIKE_SUFFIX_REGEX.get_or_init(|| r"[\s]+~\d{8}$".parse().unwrap())
 }
 
 impl Tag {
@@ -403,7 +409,7 @@ impl Tag {
         if !is_valid_facet(&facet) {
             return Err(anyhow::anyhow!("invalid facet '{facet}'").into());
         }
-        if facet_with_invalid_date_like_suffix_regex().is_match(facet.as_bytes()) {
+        if invalid_date_like_suffix_regex().is_match(facet.as_bytes()) {
             return Err(anyhow::anyhow!("facet with invalid date-like suffix '{facet}'").into());
         }
         let mut props = vec![];
