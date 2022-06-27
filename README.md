@@ -99,16 +99,16 @@ The following regular expressions could be used:
 
 Custom _properties_ could be attached to tags, abbreviated as _props_.
 
-Properties are represented as a non-empty, ordered _list_ of key/value pairs.
+Properties are represented as a non-empty, ordered _list_ of name/value pairs.
 
-_Keys_ are non-empty strings that contain arbitrary text without
+_Names_ are non-empty strings that contain arbitrary text without
 leading/trailing whitespace. There are no restrictions regarding the
-uniqueness of keys, i.e. duplicate keys are permitted.
+uniqueness of names, i.e. duplicate names are permitted.
 
 _Values_ are arbitrary strings without any restrictions. Empty values
 are permitted.
 
-Applications are responsible for interpreting the keys and values in their
+Applications are responsible for interpreting the names and values in their
 respective context. Facets could be used for defining this context.
 
 ## Serialization
@@ -148,7 +148,7 @@ distinguishing encoded _gig tags_ from arbitrary text.
 The following examples show variations of the encoded string with empty components
 that are ignored when decoding the URI.
 
-|Encoded|Facet|Date|Label|Props: Keys|Props: Values
+|Encoded|Facet|Date|Label|Props: Names|Props: Values
 |---|---|---|---|---|---|
 |`#MyTag`<br>`?#MyTag`|||`MyTag`|
 |`wishlist~20220625#For%20you`|`wishlist~20220625`|2022-06-25|`For you`|
@@ -165,8 +165,8 @@ The following tokens do not represent valid _gig tags_:
 |`My%20Tag`|Only a facet without a date, neither a label nor props|
 |`/my-facet#Label`|Facet starts with a `/`|
 |`wishlist%20~20220625#Label`|Date suffix in facet is prefixed by whitespace|
-|`?=val#Label`|Empty property key|
-|`?key=my+val#My label`|Special characters like `+` and whitespace are not percent-encoded|
+|`?=val#Label`|Empty property name|
+|`?name=my+val#My label`|Special characters like `+` and whitespace are not percent-encoded|
 |`#`|Empty label is considered as absent|
 |`?`|Empty facet and props are considered as absent|
 |`?#`|Empty facet, props, and label are considered as absent|

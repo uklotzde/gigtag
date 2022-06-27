@@ -31,135 +31,64 @@ use std::{
     str::{FromStr, Utf8Error},
 };
 
-use compact_str::{format_compact, CompactString};
 use once_cell::sync::OnceCell;
 use percent_encoding::{percent_decode, percent_encode};
-use regex::bytes::Regex;
 use thiserror::Error;
-use time::{format_description::FormatItem, macros::format_description, Date};
 use url::Url;
 
-/// Type of a property key
-pub type PropKey = CompactString;
+pub mod facet;
+use self::facet::Facet;
 
-/// Type of a property value
-pub type PropVal = CompactString;
+pub mod label;
+use self::label::Label;
 
-/// Type of a tag label
-pub type Label = CompactString;
-
-/// Type of a tag facet
-pub type Facet = CompactString;
-
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
-/// A key/value property
-pub struct Prop {
-    /// The key
-    pub key: PropKey,
-
-    /// The value
-    pub val: PropVal,
-}
-
-impl Prop {
-    /// Check for if the given key is valid.
-    #[must_use]
-    pub fn is_valid_key(key: &str) -> bool {
-        key.trim() == key
-    }
-
-    /// Check for a non-empty key.
-    #[must_use]
-    pub fn has_key(&self) -> bool {
-        debug_assert!(Self::is_valid_key(&self.key));
-        !self.key.is_empty()
-    }
-
-    /// Return the empty or valid key.
-    #[must_use]
-    pub fn key(&self) -> &PropKey {
-        debug_assert!(Self::is_valid_key(&self.key));
-        &self.key
-    }
-
-    /// Check for a non-empty value.
-    #[must_use]
-    pub fn has_val(&self) -> bool {
-        !self.val.is_empty()
-    }
-
-    /// Return the value.
-    ///
-    /// Values are always either empty or valid.
-    #[must_use]
-    pub fn val(&self) -> &PropVal {
-        &self.val
-    }
-
-    /// Check if the property is valid.
-    #[must_use]
-    pub fn is_valid(&self) -> bool {
-        self.has_key()
-    }
-}
-
-/// Check for if the given label is valid.
-#[must_use]
-pub fn is_valid_label(label: &str) -> bool {
-    label.trim() == label
-}
-
-/// Check for if the given facet is valid.
-#[must_use]
-pub fn is_valid_facet(facet: &str) -> bool {
-    facet.trim() == facet && facet.as_bytes().first() != Some(&b'/')
-}
-
-/// Check for valid properties.
-#[must_use]
-pub fn is_valid_props(props: &[Prop]) -> bool {
-    props.iter().all(Prop::is_valid)
-}
+pub mod props;
+use self::props::Property;
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 /// A tag
-pub struct Tag {
+pub struct Tag<L, F, N, V> {
     /// The label
-    pub label: Label,
+    pub label: L,
 
     /// The facet
-    pub facet: Facet,
+    pub facet: F,
 
     /// The properties
-    pub props: Vec<Prop>,
+    pub props: Vec<Property<N, V>>,
 }
 
-impl Tag {
+impl<L, F, N, V> Tag<L, F, N, V>
+where
+    L: Label,
+    F: Facet,
+    N: props::Name,
+{
     /// Check for a non-empty label.
     #[must_use]
     pub fn has_label(&self) -> bool {
-        debug_assert!(is_valid_label(&self.label));
-        !self.label.is_empty()
+        debug_assert!(self.label.is_valid());
+        !self.label.as_ref().is_empty()
     }
 
     /// Return the empty or valid label.
     #[must_use]
-    pub fn label(&self) -> &Label {
-        debug_assert!(is_valid_label(&self.label));
+    pub fn label(&self) -> &L {
+        debug_assert!(self.label.is_valid());
         &self.label
     }
 
     /// Check for a non-empty facet.
     #[must_use]
     pub fn has_facet(&self) -> bool {
-        debug_assert!(is_valid_facet(&self.facet));
-        !self.facet.is_empty()
+        debug_assert!(self.facet.is_valid());
+        !self.facet.as_ref().is_empty()
     }
 
     /// Return the empty or valid facet.
     #[must_use]
-    pub fn facet(&self) -> &Facet {
-        debug_assert!(is_valid_facet(&self.facet));
+    pub fn facet(&self) -> &F {
+        debug_assert!(self.facet.is_valid());
         &self.facet
     }
 
@@ -171,81 +100,17 @@ impl Tag {
 
     /// Return the properties.
     #[must_use]
-    pub fn props(&self) -> &[Prop] {
-        debug_assert!(is_valid_props(&self.props));
+    pub fn props(&self) -> &[Property<N, V>] {
+        debug_assert!(self.props.iter().all(Property::is_valid));
         &self.props
-    }
-
-    /// Check for a facet with date-like suffix.
-    #[must_use]
-    pub fn has_facet_with_date_like_suffix(&self) -> bool {
-        facet_has_date_like_suffix(self.facet())
     }
 
     /// Check if the tag is valid.
     #[must_use]
     pub fn is_valid(&self) -> bool {
         self.has_label()
-            || (self.has_facet() && (self.has_props() || self.has_facet_with_date_like_suffix()))
+            || (self.has_facet() && (self.has_props() || self.facet().has_date_like_suffix()))
     }
-}
-
-/// Check for a date-like suffix in the facet.
-#[must_use]
-pub fn facet_has_date_like_suffix(facet: &Facet) -> bool {
-    date_like_suffix_regex().is_match(facet.as_bytes())
-}
-
-/// Split a facet into a prefix and the date-like suffix.
-#[must_use]
-pub fn try_split_facet_into_prefix_and_date_like_suffix(facet: &Facet) -> Option<(&str, &str)> {
-    if facet.len() < DATE_LIKE_SUFFIX_LEN {
-        return None;
-    }
-    let prefix_len = facet.len() - DATE_LIKE_SUFFIX_LEN;
-    let date_suffix = &facet[prefix_len..];
-    if !date_suffix.is_ascii() {
-        return None;
-    }
-    let prefix = &facet[..prefix_len];
-    (prefix, date_suffix).into()
-}
-
-/// Split a facet into a prefix and the date suffix.
-#[must_use]
-pub fn try_split_facet_into_prefix_and_date_suffix(facet: &Facet) -> Option<(&str, Option<Date>)> {
-    let (prefix, date_suffix) = try_split_facet_into_prefix_and_date_like_suffix(facet)?;
-    let date = Date::parse(date_suffix, DATE_SUFFIX_FORMAT).ok();
-    (prefix, date).into()
-}
-
-/// Concatenate a prefix and [`Date`] suffix to a facet.
-///
-/// The prefix string must not end with trailing whitespace,
-/// otherwise the resulting facet is invalid.
-///
-/// # Errors
-///
-/// Returns an error if formatting of the given `date` fails.
-pub fn format_date_like_facet(prefix: &str, date: Date) -> Result<Facet, time::error::Format> {
-    let suffix = date.format(DATE_SUFFIX_FORMAT)?;
-    Ok(format_compact!("{prefix}{suffix}"))
-}
-
-/// Concatenate a prefix and [`Date`] suffix to a facet.
-///
-/// The prefix string must not end with trailing whitespace,
-/// otherwise the resulting facet is invalid.
-///
-/// # Errors
-///
-/// Returns an error if formatting of the given `date` fails.
-pub fn format_date_like_facet_args(
-    prefix_args: fmt::Arguments<'_>,
-    date: Date,
-) -> Result<Facet, time::error::Format> {
-    let suffix = date.format(DATE_SUFFIX_FORMAT)?;
-    Ok(format_compact!("{prefix_args}{suffix}"))
 }
 
 mod encoding {
@@ -262,7 +127,13 @@ mod encoding {
     pub(super) const PATH: &AsciiSet = &QUERY.add(b'`').add(b'?').add(b'{').add(b'}');
 }
 
-impl Tag {
+impl<L, F, N, V> Tag<L, F, N, V>
+where
+    L: Label,
+    F: Facet,
+    N: props::Name,
+    V: AsRef<str>,
+{
     /// Encode a tag as a string.
     ///
     /// The tag must be valid.
@@ -272,8 +143,8 @@ impl Tag {
     /// Returns an [`fmt::Error`] if writing into the buffer fails.
     pub fn encode_into<W: fmt::Write>(&self, write: &mut W) -> fmt::Result {
         debug_assert!(self.is_valid());
-        let encoded_label = percent_encode(self.label().as_bytes(), encoding::FRAGMENT);
-        let encoded_facet = percent_encode(self.facet().as_bytes(), encoding::PATH);
+        let encoded_label = percent_encode(self.label().as_ref().as_bytes(), encoding::FRAGMENT);
+        let encoded_facet = percent_encode(self.facet().as_ref().as_bytes(), encoding::PATH);
         if !self.has_props() {
             #[allow(clippy::redundant_else)]
             if self.has_label() {
@@ -282,11 +153,11 @@ impl Tag {
                 return write.write_fmt(format_args!("{encoded_facet}"));
             }
         }
-        let encoded_props_iter = self.props().iter().map(|Prop { key, val }| {
-            let encoded_key = percent_encode(key.as_bytes(), encoding::QUERY);
-            let encoded_val = percent_encode(val.as_bytes(), encoding::QUERY);
+        let encoded_props_iter = self.props().iter().map(|Property { name, value }| {
+            let encoded_name = percent_encode(name.as_ref().as_bytes(), encoding::QUERY);
+            let encoded_value = percent_encode(value.as_ref().as_bytes(), encoding::QUERY);
             // TODO: How to avoid an allocation here?
-            format!("{encoded_key}={encoded_val}")
+            format!("{encoded_name}={encoded_value}")
         });
         let encoded_props = itertools::join(encoded_props_iter, "&");
         if self.has_label() {
@@ -307,7 +178,13 @@ impl Tag {
     }
 }
 
-impl fmt::Display for Tag {
+impl<L, F, N, V> fmt::Display for Tag<L, F, N, V>
+where
+    L: Label,
+    F: Facet,
+    N: props::Name,
+    V: AsRef<str>,
+{
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.encode_into(f)
     }
@@ -348,28 +225,13 @@ fn dummy_base_url() -> &'static Url {
     })
 }
 
-const DATE_SUFFIX_FORMAT: &[FormatItem<'static>] = format_description!("~[year][month][day]");
-
-// ~yyyyMMdd
-const DATE_LIKE_SUFFIX_LEN: usize = 1 + 8;
-
-static DATE_LIKE_SUFFIX_REGEX: OnceCell<Regex> = OnceCell::new();
-
-fn date_like_suffix_regex() -> &'static Regex {
-    // The '~' separator of the date-like digits must not be preceded by
-    // a whitespace i.e. the facet either equals the date-like suffix
-    // or the separator is preceded by a non-whitespace character.
-    DATE_LIKE_SUFFIX_REGEX.get_or_init(|| r"(^|[^\s])~\d{8}$".parse().unwrap())
-}
-
-static INVALID_DATE_LIKE_SUFFIX_REGEX: OnceCell<Regex> = OnceCell::new();
-
-fn invalid_date_like_suffix_regex() -> &'static Regex {
-    // Reject facets with date-like suffixes that are preceded by a whitespace character
-    INVALID_DATE_LIKE_SUFFIX_REGEX.get_or_init(|| r"[\s]+~\d{8}$".parse().unwrap())
-}
-
-impl Tag {
+impl<L, F, N, V> Tag<L, F, N, V>
+where
+    L: Label,
+    F: Facet,
+    N: props::Name,
+    V: props::Value,
+{
     /// Decode a tag from a string slice.
     ///
     /// The `encoded` input must not contain any leading/trailing whitespace.
@@ -396,7 +258,7 @@ impl Tag {
         debug_assert_eq!(fragment.trim(), fragment);
         let label_encoded = fragment.as_bytes();
         let label = percent_decode(label_encoded).decode_utf8()?;
-        if !is_valid_label(&label) {
+        if !label::is_valid(&label) {
             return Err(anyhow::anyhow!("invalid label '{label}'").into());
         }
         // The leading slash in the path from the dummy base URL needs to be skipped.
@@ -406,10 +268,10 @@ impl Tag {
         debug_assert_eq!(path.as_bytes()[0], b'/');
         let facet_encoded = &url.path().as_bytes()[1..];
         let facet = percent_decode(facet_encoded).decode_utf8()?;
-        if !is_valid_facet(&facet) {
+        if !facet::is_valid(&facet) {
             return Err(anyhow::anyhow!("invalid facet '{facet}'").into());
         }
-        if invalid_date_like_suffix_regex().is_match(facet.as_bytes()) {
+        if facet::has_invalid_date_like_suffix(&facet) {
             return Err(anyhow::anyhow!("facet with invalid date-like suffix '{facet}'").into());
         }
         let mut props = vec![];
@@ -417,38 +279,38 @@ impl Tag {
         debug_assert_eq!(query.trim(), query);
         if !query.is_empty() {
             let query_encoded = query.as_bytes();
-            for keyval_encoded in query_encoded.split(|b| *b == b'&') {
-                let mut keyval_encoded_split = keyval_encoded.split(|b| *b == b'=');
-                let key_encoded = if let Some(key_encoded) = keyval_encoded_split.next() {
-                    key_encoded
+            for name_value_encoded in query_encoded.split(|b| *b == b'&') {
+                let mut name_value_encoded_split = name_value_encoded.split(|b| *b == b'=');
+                let name_encoded = if let Some(name_encoded) = name_value_encoded_split.next() {
+                    name_encoded
                 } else {
-                    return Err(anyhow::anyhow!("missing property key").into());
+                    return Err(anyhow::anyhow!("missing property name").into());
                 };
-                let val_encoded = keyval_encoded_split.next().unwrap_or_default();
-                if keyval_encoded_split.next().is_some() {
+                let value_encoded = name_value_encoded_split.next().unwrap_or_default();
+                if name_value_encoded_split.next().is_some() {
                     return Err(anyhow::anyhow!(
-                        "malformed key=val property '{keyval}'",
-                        keyval = percent_decode(keyval_encoded)
+                        "malformed name=value property '{name_value}'",
+                        name_value = percent_decode(name_value_encoded)
                             .decode_utf8()
                             .unwrap_or_default()
                     )
                     .into());
                 }
-                let key = percent_decode(key_encoded).decode_utf8()?;
-                if !Prop::is_valid_key(&key) {
-                    return Err(anyhow::anyhow!("invalid property key '{key}'").into());
+                let name = percent_decode(name_encoded).decode_utf8()?;
+                if !props::is_name_valid(&name) {
+                    return Err(anyhow::anyhow!("invalid property name '{name}'").into());
                 }
-                let val = percent_decode(val_encoded).decode_utf8()?;
-                let prop = Prop {
-                    key: key.into(),
-                    val: val.into(),
+                let value = percent_decode(value_encoded).decode_utf8()?;
+                let prop = Property {
+                    name: props::Name::from_cow_str(name),
+                    value: props::Value::from_cow_str(value),
                 };
                 props.push(prop);
             }
         }
         let tag = Self {
-            label: label.into(),
-            facet: facet.into(),
+            label: <L as Label>::from_cow_str(label),
+            facet: <F as Facet>::from_cow_str(facet),
             props,
         };
         if !tag.is_valid() {
@@ -458,7 +320,13 @@ impl Tag {
     }
 }
 
-impl FromStr for Tag {
+impl<L, F, N, V> FromStr for Tag<L, F, N, V>
+where
+    L: Label,
+    F: Facet,
+    N: props::Name,
+    V: props::Value,
+{
     type Err = DecodeError;
 
     fn from_str(input: &str) -> Result<Self, Self::Err> {
@@ -468,11 +336,11 @@ impl FromStr for Tag {
     }
 }
 
-/// Tags decoded from a text field.
+/// Tags decoded from a text field
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct DecodedTags {
+pub struct DecodedTags<L, F, N, V> {
     /// Valid, decoded tags
-    pub tags: Vec<Tag>,
+    pub tags: Vec<Tag<L, F, N, V>>,
 
     /// The remaining, undecoded prefix.
     pub undecoded_prefix: String,
@@ -480,7 +348,13 @@ pub struct DecodedTags {
 
 const JOIN_ENCODED_TAGS_CHAR: char = ' ';
 
-impl DecodedTags {
+impl<L, F, N, V> DecodedTags<L, F, N, V>
+where
+    L: Label,
+    F: Facet,
+    N: props::Name,
+    V: props::Value,
+{
     /// Decode from a string slice.
     #[must_use]
     pub fn decode_str(encoded: &str) -> Self {
@@ -557,18 +431,22 @@ impl DecodedTags {
     #[allow(clippy::missing_panics_doc)]
     pub fn reorder_date_like(&mut self) {
         self.tags.sort_by(|lhs, rhs| {
-            if rhs.has_facet_with_date_like_suffix() {
-                if lhs.has_facet_with_date_like_suffix() {
-                    let (_, lhs_suffix) =
-                        try_split_facet_into_prefix_and_date_like_suffix(lhs.facet()).unwrap();
-                    let (_, rhs_suffix) =
-                        try_split_facet_into_prefix_and_date_like_suffix(rhs.facet()).unwrap();
+            if rhs.facet().has_date_like_suffix() {
+                if lhs.facet().has_date_like_suffix() {
+                    let (_, lhs_suffix) = lhs
+                        .facet()
+                        .try_split_into_prefix_and_date_like_suffix()
+                        .unwrap();
+                    let (_, rhs_suffix) = rhs
+                        .facet()
+                        .try_split_into_prefix_and_date_like_suffix()
+                        .unwrap();
                     // Descending order by decimal digits encoded as ASCII chars
                     rhs_suffix.cmp(lhs_suffix)
                 } else {
                     Ordering::Less
                 }
-            } else if lhs.has_facet_with_date_like_suffix() {
+            } else if lhs.facet().has_date_like_suffix() {
                 Ordering::Greater
             } else {
                 Ordering::Equal
@@ -580,20 +458,31 @@ impl DecodedTags {
 #[cfg(test)]
 #[allow(clippy::redundant_clone)]
 pub mod tests {
-    use super::*;
+    use compact_str::CompactString;
+
+    use super::{
+        facet::{CompactFacet, Facet as _},
+        label::{CompactLabel, Label as _},
+        *,
+    };
+
+    type Facet = CompactFacet;
+    type Label = CompactLabel;
+    type Tag = super::Tag<Label, Facet, props::CompactName, CompactString>;
+    type DecodedTags = super::DecodedTags<Label, Facet, props::CompactName, CompactString>;
 
     #[test]
     fn is_not_valid() {
         assert!(!Tag::default().is_valid());
         assert!(!Tag {
-            facet: "facet".into(),
+            facet: Facet::from_str("facet"),
             ..Default::default()
         }
         .is_valid());
         assert!(!Tag {
-            props: vec![Prop {
-                key: "key".into(),
-                val: "val".into(),
+            props: vec![Property {
+                name: props::Name::from_str("name"),
+                value: props::Value::from_str("value"),
             },],
             ..Default::default()
         }
@@ -604,19 +493,20 @@ pub mod tests {
     fn encode_decode() {
         // TODO: Test encoding/decoding for all reserved characters
         //let rfc_3986_reserved_characters = "!#$&'()*+,/:;=?@[]";
-        let label: Label = "My Tag (foo+bar)".into();
+        let label: Label = Label::from_str("My Tag (foo+bar)");
         let encoded_label = "My%20Tag%20(foo+bar)";
-        let facet: Facet = "a/date//facet+with ?special#characters and whitespace~20220625".into();
+        let facet: Facet =
+            Facet::from_str("a/date//facet+with ?special#characters and whitespace~20220625");
         let encoded_facet =
             "a/date//facet+with%20%3Fspecial%23characters%20and%20whitespace~20220625";
         let props = vec![
-            Prop {
-                key: "prop?\n \t1".into(),
-                val: "Hello, World!".into(),
+            Property {
+                name: props::Name::from_str("prop?\n \t1"),
+                value: props::Value::from_str("Hello, World!"),
             },
-            Prop {
-                key: "prop #2".into(),
-                val: "0.123".into(),
+            Property {
+                name: props::Name::from_str("prop #2"),
+                value: props::Value::from_str("0.123"),
             },
         ];
         let encoded_props = "prop?%0A%20%091=Hello,%20World!&prop%20%232=0.123";
@@ -679,131 +569,50 @@ pub mod tests {
 
     #[test]
     fn should_fail_to_decode_facet_with_leading_slash() {
-        assert!(Tag::decode_str("facet?key=val").is_ok());
-        assert!(Tag::decode_str("/facet?key=val").is_err());
+        assert!(Tag::decode_str("facet?name=val").is_ok());
+        assert!(Tag::decode_str("/facet?name=val").is_err());
         assert!(Tag::decode_str("facet#label").is_ok());
         assert!(Tag::decode_str("//facet#label").is_err());
     }
 
     #[test]
-    fn should_fail_to_decode_prop_key_with_leading_or_trailing_whitespace() {
-        assert!(Tag::decode_str("facet?key=val").is_ok());
-        assert!(Tag::decode_str("facet?%20key=val").is_err());
-        assert!(Tag::decode_str("facet?key%20=val").is_err());
+    fn should_fail_to_decode_prop_name_with_leading_or_trailing_whitespace() {
+        assert!(Tag::decode_str("facet?name=val").is_ok());
+        assert!(Tag::decode_str("facet?%20name=val").is_err());
+        assert!(Tag::decode_str("facet?name%20=val").is_err());
     }
 
     #[test]
     fn parse_from_str_allows_leading_or_trailing_whitespace() {
-        assert_eq!("label", " #label".parse::<Tag>().unwrap().label().as_str());
-        assert_eq!("label", "#label ".parse::<Tag>().unwrap().label().as_str());
-    }
-
-    #[test]
-    fn try_split_facet_into_prefix_and_date_like_suffix_should_accept_and_preserve_invalid_whitespace(
-    ) {
-        let date = Date::from_calendar_date(2022, time::Month::June, 25).unwrap();
-        let facet: Facet = "~20220625".into();
-        assert_eq!(
-            ("", Some(date)),
-            try_split_facet_into_prefix_and_date_suffix(&facet).unwrap()
-        );
-        let facet: Facet = " \t \n ~20220625".into();
-        assert_eq!(
-            (" \t \n ", Some(date)),
-            try_split_facet_into_prefix_and_date_suffix(&facet).unwrap()
-        );
-        let facet: Facet = "\tabc~20220625".into();
-        assert_eq!(
-            ("\tabc", Some(date)),
-            try_split_facet_into_prefix_and_date_suffix(&facet).unwrap()
-        );
-    }
-
-    #[test]
-    fn try_split_facet_into_prefix_and_date_like_suffix_should_accept_invalid_dates() {
-        let facet: Facet = "~00000000".into();
-        assert_eq!(
-            ("", "~00000000"),
-            try_split_facet_into_prefix_and_date_like_suffix(&facet).unwrap()
-        );
-        assert_eq!(
-            ("", None),
-            try_split_facet_into_prefix_and_date_suffix(&facet).unwrap()
-        );
-        let facet: Facet = "abc~99999999".into();
-        assert_eq!(
-            ("abc", "~99999999"),
-            try_split_facet_into_prefix_and_date_like_suffix(&facet).unwrap()
-        );
-        assert_eq!(
-            ("abc", None),
-            try_split_facet_into_prefix_and_date_suffix(&facet).unwrap()
-        );
-        let facet: Facet = "abc ~19700230".into();
-        assert_eq!(
-            ("abc ", "~19700230"),
-            try_split_facet_into_prefix_and_date_like_suffix(&facet).unwrap()
-        );
-        assert_eq!(
-            ("abc ", None),
-            try_split_facet_into_prefix_and_date_suffix(&facet).unwrap()
-        );
+        assert_eq!("label", " #label".parse::<Tag>().unwrap().label().as_ref());
+        assert_eq!("label", "#label ".parse::<Tag>().unwrap().label().as_ref());
     }
 
     #[test]
     fn tags_with_date_facets() {
-        let facet_with_date_only: Facet = "~20220625".into();
+        let facet_with_date_only: Facet = Facet::from_str("~20220625");
         let tag = Tag {
             facet: facet_with_date_only,
             ..Default::default()
         };
         assert!(tag.is_valid());
-        assert!(tag.has_facet_with_date_like_suffix());
+        assert!(tag.facet().has_date_like_suffix());
 
-        let facet_with_text_and_date: Facet = "text~20220625".into();
+        let facet_with_text_and_date: Facet = Facet::from_str("text~20220625");
         let tag = Tag {
             facet: facet_with_text_and_date,
             ..tag
         };
         assert!(tag.is_valid());
-        assert!(tag.has_facet_with_date_like_suffix());
+        assert!(tag.facet().has_date_like_suffix());
 
-        let facet_without_date_suffix: Facet = "20220625".into();
+        let facet_without_date_suffix: Facet = Facet::from_str("20220625");
         let tag = Tag {
             facet: facet_without_date_suffix,
             ..tag
         };
         assert!(!tag.is_valid());
-        assert!(!tag.has_facet_with_date_like_suffix());
-    }
-
-    #[test]
-    fn has_facet_with_date_like_suffix() {
-        assert!(Tag {
-            facet: "~20220625".into(),
-            ..Default::default()
-        }
-        .has_facet_with_date_like_suffix());
-        assert!(Tag {
-            facet: "a~20220625".into(),
-            ..Default::default()
-        }
-        .has_facet_with_date_like_suffix());
-        assert!(!Tag {
-            facet: "a ~20220625".into(),
-            ..Default::default()
-        }
-        .has_facet_with_date_like_suffix());
-        assert!(!Tag {
-            facet: "a-20220625".into(),
-            ..Default::default()
-        }
-        .has_facet_with_date_like_suffix());
-        assert!(!Tag {
-            facet: "a20220625".into(),
-            ..Default::default()
-        }
-        .has_facet_with_date_like_suffix());
+        assert!(!tag.facet().has_date_like_suffix());
     }
 
     #[test]
@@ -815,15 +624,15 @@ pub mod tests {
             assert_eq!(encoded, reencoded);
         }
         reencode("#My%20Label");
-        reencode("?key=val#My%20Label");
+        reencode("?name=val#My%20Label");
         reencode("~20220625");
         reencode("~20220625#My%20Label");
-        reencode("~20220625?key=val");
-        reencode("~20220625?key=val#My%20Label");
+        reencode("~20220625?name=val1&name=val2");
+        reencode("~20220625?name=val#My%20Label");
         reencode("a%20facet~20220625");
         reencode("a%20facet~20220625#My%20Label");
-        reencode("a%20facet~20220625?key=val");
-        reencode("a%20facet~20220625?key=val#My%20Label");
+        reencode("a%20facet~20220625?name=val");
+        reencode("a%20facet~20220625?name=val#My%20Label");
     }
 
     #[test]
