@@ -113,7 +113,10 @@ pub trait Facet: AsRef<str> + Default + Sized {
     /// # Errors
     ///
     /// Returns an error if formatting of the given `date` fails.
-    fn from_prefix_with_date_suffix(prefix: &str, date: Date) -> Result<Self, time::error::Format>;
+    fn from_prefix_with_date_suffix(prefix: &str, date: Date) -> Result<Self, time::error::Format> {
+        let suffix = date.format(DATE_SUFFIX_FORMAT)?;
+        Ok(Self::from_string(format!("{prefix}{suffix}")))
+    }
 
     /// Concatenate a prefix and [`Date`] suffix to a facet.
     ///
@@ -126,7 +129,10 @@ pub trait Facet: AsRef<str> + Default + Sized {
     fn from_prefix_args_with_date_suffix(
         prefix_args: fmt::Arguments<'_>,
         date: Date,
-    ) -> Result<Self, time::error::Format>;
+    ) -> Result<Self, time::error::Format> {
+        let suffix = date.format(DATE_SUFFIX_FORMAT)?;
+        Ok(Self::from_string(format!("{prefix_args}{suffix}")))
+    }
 
     /// [`is_valid()`]
     #[must_use]
