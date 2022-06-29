@@ -48,9 +48,9 @@ pub fn try_split_into_prefix_and_date_like_suffix(facet: &str) -> Option<(&str, 
     (prefix, date_suffix).into()
 }
 
-/// Split a facet into a prefix and the date suffix.
+/// Split a facet into a prefix and parse the date suffix.
 #[must_use]
-pub fn try_split_into_prefix_and_date_suffix(facet: &str) -> Option<(&str, Option<Date>)> {
+pub fn try_split_into_prefix_and_parse_date_suffix(facet: &str) -> Option<(&str, Option<Date>)> {
     debug_assert!(is_valid(facet));
     let (prefix, date_suffix) = try_split_into_prefix_and_date_like_suffix(facet)?;
     let date = Date::parse(date_suffix, DATE_SUFFIX_FORMAT).ok();
@@ -152,10 +152,10 @@ pub trait Facet: AsRef<str> + Default + Sized {
         try_split_into_prefix_and_date_like_suffix(self.as_ref())
     }
 
-    /// [`try_split_into_prefix_and_date_suffix()`]
+    /// [`try_split_into_prefix_and_parse_date_suffix()`]
     #[must_use]
-    fn try_split_into_prefix_and_date_suffix(&self) -> Option<(&str, Option<Date>)> {
-        try_split_into_prefix_and_date_suffix(self.as_ref())
+    fn try_split_into_prefix_and_parse_date_suffix(&self) -> Option<(&str, Option<Date>)> {
+        try_split_into_prefix_and_parse_date_suffix(self.as_ref())
     }
 }
 
@@ -218,12 +218,12 @@ pub mod tests {
         let facet = Facet::from_str("~20220625");
         assert_eq!(
             ("", Some(date)),
-            facet.try_split_into_prefix_and_date_suffix().unwrap()
+            facet.try_split_into_prefix_and_parse_date_suffix().unwrap()
         );
         let facet = Facet::from_str("a \tb c\n ~20220625");
         assert_eq!(
             ("a \tb c\n ", Some(date)),
-            facet.try_split_into_prefix_and_date_suffix().unwrap()
+            facet.try_split_into_prefix_and_parse_date_suffix().unwrap()
         );
     }
 
@@ -236,7 +236,7 @@ pub mod tests {
         );
         assert_eq!(
             ("", None),
-            facet.try_split_into_prefix_and_date_suffix().unwrap()
+            facet.try_split_into_prefix_and_parse_date_suffix().unwrap()
         );
         let facet = Facet::from_str("abc~99999999");
         assert_eq!(
@@ -245,7 +245,7 @@ pub mod tests {
         );
         assert_eq!(
             ("abc", None),
-            facet.try_split_into_prefix_and_date_suffix().unwrap()
+            facet.try_split_into_prefix_and_parse_date_suffix().unwrap()
         );
         let facet = Facet::from_str("abc ~19700230");
         assert_eq!(
@@ -254,7 +254,7 @@ pub mod tests {
         );
         assert_eq!(
             ("abc ", None),
-            facet.try_split_into_prefix_and_date_suffix().unwrap()
+            facet.try_split_into_prefix_and_parse_date_suffix().unwrap()
         );
     }
 
