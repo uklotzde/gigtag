@@ -91,6 +91,39 @@ impl Name for CompactName {
     }
 }
 
+/// Name with a full-blown `String` representation
+#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[allow(clippy::module_name_repetitions)]
+pub struct StdName(String);
+
+impl AsRef<str> for StdName {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
+impl Deref for StdName {
+    type Target = str;
+
+    fn deref(&self) -> &Self::Target {
+        self.as_ref()
+    }
+}
+
+impl Name for StdName {
+    fn from_str(name: &str) -> Self {
+        Self(name.into())
+    }
+
+    fn from_string(name: String) -> Self {
+        Self(name)
+    }
+
+    fn from_cow_str(name: Cow<'_, str>) -> Self {
+        Self(name.into())
+    }
+}
+
 /// Common trait for values
 pub trait Value: AsRef<str> + Default + Sized {
     /// Crate a value from a borrowed string slice.

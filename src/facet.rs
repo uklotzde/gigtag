@@ -211,6 +211,39 @@ impl Facet for CompactFacet {
     }
 }
 
+/// Facet with a full-blown `String` representation
+#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[allow(clippy::module_name_repetitions)]
+pub struct StdFacet(String);
+
+impl AsRef<str> for StdFacet {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
+impl Deref for StdFacet {
+    type Target = str;
+
+    fn deref(&self) -> &Self::Target {
+        self.as_ref()
+    }
+}
+
+impl Facet for StdFacet {
+    fn from_str(facet: &str) -> Self {
+        Self(facet.into())
+    }
+
+    fn from_string(facet: String) -> Self {
+        Self(facet)
+    }
+
+    fn from_cow_str(facet: Cow<'_, str>) -> Self {
+        Self(facet.into())
+    }
+}
+
 #[cfg(test)]
 #[allow(clippy::redundant_clone)]
 pub mod tests {

@@ -91,3 +91,36 @@ impl Label for CompactLabel {
         Self(label.into())
     }
 }
+
+/// Label with a full-blown `String` representation
+#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[allow(clippy::module_name_repetitions)]
+pub struct StdLabel(String);
+
+impl AsRef<str> for StdLabel {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
+impl Deref for StdLabel {
+    type Target = str;
+
+    fn deref(&self) -> &Self::Target {
+        self.as_ref()
+    }
+}
+
+impl Label for StdLabel {
+    fn from_str(label: &str) -> Self {
+        Self(label.into())
+    }
+
+    fn from_string(label: String) -> Self {
+        Self(label)
+    }
+
+    fn from_cow_str(label: Cow<'_, str>) -> Self {
+        Self(label.into())
+    }
+}
