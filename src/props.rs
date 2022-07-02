@@ -63,6 +63,29 @@ pub trait Name: AsRef<str> + Default + Sized {
 #[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct CompactName(CompactString);
 
+impl CompactName {
+    /// Create a new name.
+    ///
+    /// The argument is not validated.
+    #[must_use]
+    pub const fn new(inner: CompactString) -> Self {
+        Self(inner)
+    }
+}
+
+impl From<CompactString> for CompactName {
+    fn from(from: CompactString) -> Self {
+        Self::new(from)
+    }
+}
+
+impl From<CompactName> for CompactString {
+    fn from(from: CompactName) -> Self {
+        let CompactName(inner) = from;
+        inner
+    }
+}
+
 impl AsRef<str> for CompactName {
     fn as_ref(&self) -> &str {
         &self.0
@@ -95,6 +118,29 @@ impl Name for CompactName {
 #[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[allow(clippy::module_name_repetitions)]
 pub struct StdName(String);
+
+impl StdName {
+    /// Create a new name.
+    ///
+    /// The argument is not validated.
+    #[must_use]
+    pub const fn new(inner: String) -> Self {
+        Self(inner)
+    }
+}
+
+impl From<String> for StdName {
+    fn from(from: String) -> Self {
+        Self::new(from)
+    }
+}
+
+impl From<StdName> for String {
+    fn from(from: StdName) -> Self {
+        let StdName(inner) = from;
+        inner
+    }
+}
 
 impl AsRef<str> for StdName {
     fn as_ref(&self) -> &str {

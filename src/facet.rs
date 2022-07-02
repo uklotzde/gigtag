@@ -170,6 +170,29 @@ pub trait Facet: AsRef<str> + Default + Sized {
 #[allow(clippy::module_name_repetitions)]
 pub struct CompactFacet(CompactString);
 
+impl CompactFacet {
+    /// Create a new facet.
+    ///
+    /// The argument is not validated.
+    #[must_use]
+    pub const fn new(inner: CompactString) -> Self {
+        Self(inner)
+    }
+}
+
+impl From<CompactString> for CompactFacet {
+    fn from(from: CompactString) -> Self {
+        Self::new(from)
+    }
+}
+
+impl From<CompactFacet> for CompactString {
+    fn from(from: CompactFacet) -> Self {
+        let CompactFacet(inner) = from;
+        inner
+    }
+}
+
 impl AsRef<str> for CompactFacet {
     fn as_ref(&self) -> &str {
         &self.0
@@ -215,6 +238,29 @@ impl Facet for CompactFacet {
 #[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[allow(clippy::module_name_repetitions)]
 pub struct StdFacet(String);
+
+impl StdFacet {
+    /// Create a new facet.
+    ///
+    /// The argument is not validated.
+    #[must_use]
+    pub const fn new(inner: String) -> Self {
+        Self(inner)
+    }
+}
+
+impl From<String> for StdFacet {
+    fn from(from: String) -> Self {
+        Self::new(from)
+    }
+}
+
+impl From<StdFacet> for String {
+    fn from(from: StdFacet) -> Self {
+        let StdFacet(inner) = from;
+        inner
+    }
+}
 
 impl AsRef<str> for StdFacet {
     fn as_ref(&self) -> &str {

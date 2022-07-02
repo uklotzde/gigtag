@@ -64,6 +64,29 @@ pub trait Label: AsRef<str> + Default + Sized {
 #[allow(clippy::module_name_repetitions)]
 pub struct CompactLabel(CompactString);
 
+impl CompactLabel {
+    /// Create a new label.
+    ///
+    /// The argument is not validated.
+    #[must_use]
+    pub const fn new(inner: CompactString) -> Self {
+        Self(inner)
+    }
+}
+
+impl From<CompactString> for CompactLabel {
+    fn from(from: CompactString) -> Self {
+        Self::new(from)
+    }
+}
+
+impl From<CompactLabel> for CompactString {
+    fn from(from: CompactLabel) -> Self {
+        let CompactLabel(inner) = from;
+        inner
+    }
+}
+
 impl AsRef<str> for CompactLabel {
     fn as_ref(&self) -> &str {
         &self.0
@@ -96,6 +119,29 @@ impl Label for CompactLabel {
 #[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[allow(clippy::module_name_repetitions)]
 pub struct StdLabel(String);
+
+impl StdLabel {
+    /// Create a new label.
+    ///
+    /// The argument is not validated.
+    #[must_use]
+    pub const fn new(inner: String) -> Self {
+        Self(inner)
+    }
+}
+
+impl From<String> for StdLabel {
+    fn from(from: String) -> Self {
+        Self::new(from)
+    }
+}
+
+impl From<StdLabel> for String {
+    fn from(from: StdLabel) -> Self {
+        let StdLabel(inner) = from;
+        inner
+    }
+}
 
 impl AsRef<str> for StdLabel {
     fn as_ref(&self) -> &str {
