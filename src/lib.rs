@@ -47,7 +47,7 @@ use self::props::Property;
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 /// A tag
-pub struct Tag<L, F, N, V> {
+pub struct Tag<F, L, N, V> {
     /// The label
     pub label: L,
 
@@ -58,10 +58,10 @@ pub struct Tag<L, F, N, V> {
     pub props: Vec<Property<N, V>>,
 }
 
-impl<L, F, N, V> Tag<L, F, N, V>
+impl<F, L, N, V> Tag<F, L, N, V>
 where
-    L: Label,
     F: Facet,
+    L: Label,
     N: props::Name,
 {
     /// Check for a non-empty label.
@@ -127,10 +127,10 @@ mod encoding {
     pub(super) const PATH: &AsciiSet = &QUERY.add(b'`').add(b'?').add(b'{').add(b'}');
 }
 
-impl<L, F, N, V> Tag<L, F, N, V>
+impl<F, L, N, V> Tag<F, L, N, V>
 where
-    L: Label,
     F: Facet,
+    L: Label,
     N: props::Name,
     V: AsRef<str>,
 {
@@ -178,10 +178,10 @@ where
     }
 }
 
-impl<L, F, N, V> fmt::Display for Tag<L, F, N, V>
+impl<F, L, N, V> fmt::Display for Tag<F, L, N, V>
 where
-    L: Label,
     F: Facet,
+    L: Label,
     N: props::Name,
     V: AsRef<str>,
 {
@@ -225,10 +225,10 @@ fn dummy_base_url() -> &'static Url {
     })
 }
 
-impl<L, F, N, V> Tag<L, F, N, V>
+impl<F, L, N, V> Tag<F, L, N, V>
 where
-    L: Label,
     F: Facet,
+    L: Label,
     N: props::Name,
     V: props::Value,
 {
@@ -320,10 +320,10 @@ where
     }
 }
 
-impl<L, F, N, V> FromStr for Tag<L, F, N, V>
+impl<F, L, N, V> FromStr for Tag<F, L, N, V>
 where
-    L: Label,
     F: Facet,
+    L: Label,
     N: props::Name,
     V: props::Value,
 {
@@ -338,9 +338,9 @@ where
 
 /// Tags decoded from a text field
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct DecodedTags<L, F, N, V> {
+pub struct DecodedTags<F, L, N, V> {
     /// Valid, decoded tags
-    pub tags: Vec<Tag<L, F, N, V>>,
+    pub tags: Vec<Tag<F, L, N, V>>,
 
     /// The remaining, undecoded prefix.
     pub undecoded_prefix: String,
@@ -348,10 +348,10 @@ pub struct DecodedTags<L, F, N, V> {
 
 const JOIN_ENCODED_TAGS_CHAR: char = ' ';
 
-impl<L, F, N, V> DecodedTags<L, F, N, V>
+impl<F, L, N, V> DecodedTags<F, L, N, V>
 where
-    L: Label,
     F: Facet,
+    L: Label,
     N: props::Name,
     V: props::Value,
 {
@@ -468,8 +468,8 @@ pub mod tests {
 
     type Facet = CompactFacet;
     type Label = CompactLabel;
-    type Tag = super::Tag<Label, Facet, props::CompactName, CompactString>;
-    type DecodedTags = super::DecodedTags<Label, Facet, props::CompactName, CompactString>;
+    type Tag = super::Tag<Facet, Label, props::CompactName, CompactString>;
+    type DecodedTags = super::DecodedTags<Facet, Label, props::CompactName, CompactString>;
 
     #[test]
     fn is_not_valid() {
