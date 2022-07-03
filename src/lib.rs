@@ -394,7 +394,7 @@ where
         }
     }
 
-    /// Re-encode the contents.
+    /// Encode the contents into a separate buffer.
     ///
     /// # Errors
     ///
@@ -413,6 +413,26 @@ where
             append_separator = true;
         }
         Ok(())
+    }
+
+    /// Re-encode the contents.
+    ///
+    /// # Errors
+    ///
+    /// Returns an [`fmt::Error`] if writing into the buffer fails.
+    pub fn reencode(self) -> Result<String, fmt::Error> {
+        let mut reencoded = self.undecoded_prefix;
+        // Append a separated before the first encoded tag of the undecoded prefix
+        // is not empty and does not end with a whitespace.
+        let mut append_separator = !reencoded.is_empty() && reencoded.trim_end() == reencoded;
+        for tag in &self.tags {
+            if append_separator {
+                reencoded.push(JOIN_ENCODED_TAGS_CHAR);
+            }
+            tag.encode_into(&mut reencoded)?;
+            append_separator = true;
+        }
+        Ok(reencoded)
     }
 
     /// Remove duplicate tags.
@@ -491,8 +511,6 @@ pub mod tests {
 
     #[test]
     fn encode_decode() {
-        // TODO: Test encoding/decoding for all reserved characters
-        //let rfc_3986_reserved_characters = "!#$&'()*+,/:;=?@[]";
         let label: Label = Label::from_str("My Tag (foo+bar)");
         let encoded_label = "My%20Tag%20(foo+bar)";
         let facet: Facet =
@@ -510,6 +528,61 @@ pub mod tests {
             },
         ];
         let encoded_props = "prop?%0A%20%091=Hello,%20World!&prop%20%232=0.123";
+        let tag = Tag {
+            label: label.clone(),
+            ..Default::default()
+        };
+        let encoded = format!("#{encoded_label}");
+        assert_eq!(encoded, tag.encode());
+        assert_eq!(tag, Tag::decode_str(&encoded).unwrap());
+        let tag = Tag {
+            label: label.clone(),
+            facet: facet.clone(),
+            ..Default::default()
+        };
+        let encoded = format!("{encoded_facet}#{encoded_label}");
+        assert_eq!(encoded, tag.encode());
+        assert_eq!(tag, Tag::decode_str(&encoded).unwrap());
+        let tag = Tag {
+            label: label.clone(),
+            props: props.clone(),
+            ..Default::default()
+        };
+        let encoded = format!("?{encoded_props}#{encoded_label}");
+        assert_eq!(encoded, tag.encode());
+        assert_eq!(tag, Tag::decode_str(&encoded).unwrap());
+        let tag = Tag {
+            facet: facet.clone(),
+            props: props.clone(),
+            ..Default::default()
+        };
+        let encoded = format!("{encoded_facet}?{encoded_props}");
+        assert_eq!(encoded, tag.encode());
+        assert_eq!(tag, Tag::decode_str(&encoded).unwrap());
+        let tag = Tag {
+            label: label.clone(),
+            facet: facet.clone(),
+            props: props.clone(),
+        };
+        let encoded = format!("{encoded_facet}?{encoded_props}#{encoded_label}");
+        assert_eq!(encoded, tag.encode());
+        assert_eq!(tag, Tag::decode_str(&encoded).unwrap());
+    }
+
+    #[test]
+    #[ignore] // FIXME
+    fn encode_decode_reserved_and_special_characters() {
+        // TODO: Test encoding/decoding for all reserved characters
+        //let rfc_3986_reserved_characters = "!#$&'()*+,/:;=?@[]";
+        let label: Label = Label::from_str("~?#Label~?#");
+        let encoded_label = "~?#Label~?#";
+        let facet: Facet = Facet::from_str("~?#Facet~?#");
+        let encoded_facet = "~%3F%23Facet~%3F%23";
+        let props = vec![Property {
+            name: props::Name::from_str("~?#Name~?#="),
+            value: props::Value::from_str("=~?#Value~?#"),
+        }];
+        let encoded_props = "~%3F%23Facet~%3F%23%3D=%3D~%3F%23Value~%3F%23";
         let tag = Tag {
             label: label.clone(),
             ..Default::default()
@@ -657,8 +730,7 @@ pub mod tests {
     fn decode_and_reencode_single_tag_without_leading_or_trailing_whitespace() {
         let decoded_tags = DecodedTags::decode_str("#Tag1");
         assert!(decoded_tags.undecoded_prefix.is_empty());
-        let mut reencoded = String::new();
-        assert!(decoded_tags.encode_into(&mut reencoded).is_ok());
+        let reencoded = decoded_tags.reencode().unwrap();
         assert_eq!("#Tag1", reencoded);
     }
 
@@ -666,20 +738,22 @@ pub mod tests {
     fn decode_and_reencode_tags_exhaustive() {
         let decoded = DecodedTags::decode_str("  #Tag1\t#Tag%202  wishlist~20220526#Someone \n");
         assert!(decoded.undecoded_prefix.is_empty());
-        let mut reencoded = String::new();
-        assert!(decoded.encode_into(&mut reencoded).is_ok());
+        let reencoded = decoded.reencode().unwrap();
         assert_eq!("#Tag1 #Tag%202 wishlist~20220526#Someone", reencoded);
     }
 
     #[test]
     fn decode_and_reencode_tags_partially() {
-        let decoded =
-            DecodedTags::decode_str("This text should be preserved including the trailing newline\n#Tag1\t#Tag%202  wishlist~20220526#Someone \n");
-        assert_eq!(
-            "This text should be preserved including the trailing newline\n",
-            decoded.undecoded_prefix
-        );
+        let undecoded_prefix = "This text should be preserved including the trailing newline\n";
+        let encoded = format!("{undecoded_prefix}#Tag1\t#Tag%202  wishlist~20220526#Someone \n");
+        let decoded = DecodedTags::decode_str(&encoded);
+        assert_eq!(undecoded_prefix, decoded.undecoded_prefix);
         assert_eq!(3, decoded.tags.len());
+        let reencoded = decoded.reencode().unwrap();
+        assert_eq!(
+            format!("{undecoded_prefix}#Tag1 #Tag%202 wishlist~20220526#Someone"),
+            reencoded
+        );
     }
 
     #[test]
