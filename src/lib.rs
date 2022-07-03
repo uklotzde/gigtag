@@ -116,15 +116,32 @@ where
 mod encoding {
     use percent_encoding::{AsciiSet, CONTROLS};
 
+    const CONTROLS_ESCAPE: &AsciiSet = &CONTROLS.add(b'%');
+
     /// <https://url.spec.whatwg.org/#fragment-percent-encode-set>
-    pub(super) const FRAGMENT: &AsciiSet =
-        &CONTROLS.add(b' ').add(b'"').add(b'<').add(b'>').add(b'`');
+    const FRAGMENT: &AsciiSet = &CONTROLS_ESCAPE
+        .add(b' ')
+        .add(b'"')
+        .add(b'<')
+        .add(b'>')
+        .add(b'`');
+
+    pub(super) const LABEL: &AsciiSet = FRAGMENT;
 
     /// <https://url.spec.whatwg.org/#query-percent-encode-set>
-    pub(super) const QUERY: &AsciiSet = &CONTROLS.add(b' ').add(b'"').add(b'<').add(b'>').add(b'#');
+    const QUERY: &AsciiSet = &CONTROLS_ESCAPE
+        .add(b' ')
+        .add(b'"')
+        .add(b'<')
+        .add(b'>')
+        .add(b'#');
 
-    /// <https://url.spec.whatwg.org/#query-percent-encode-set>
-    pub(super) const PATH: &AsciiSet = &QUERY.add(b'`').add(b'?').add(b'{').add(b'}');
+    pub(super) const PROPS: &AsciiSet = &QUERY.add(b'&').add(b'=');
+
+    /// <https://url.spec.whatwg.org/#path-percent-encode-set>
+    const PATH: &AsciiSet = &QUERY.add(b'`').add(b'?').add(b'{').add(b'}');
+
+    pub(super) const FACET: &AsciiSet = PATH;
 }
 
 impl<F, L, N, V> Tag<F, L, N, V>
@@ -143,8 +160,8 @@ where
     /// Returns an [`fmt::Error`] if writing into the buffer fails.
     pub fn encode_into<W: fmt::Write>(&self, write: &mut W) -> fmt::Result {
         debug_assert!(self.is_valid());
-        let encoded_label = percent_encode(self.label().as_ref().as_bytes(), encoding::FRAGMENT);
-        let encoded_facet = percent_encode(self.facet().as_ref().as_bytes(), encoding::PATH);
+        let encoded_label = percent_encode(self.label().as_ref().as_bytes(), encoding::LABEL);
+        let encoded_facet = percent_encode(self.facet().as_ref().as_bytes(), encoding::FACET);
         if !self.has_props() {
             #[allow(clippy::redundant_else)]
             if self.has_label() {
@@ -154,8 +171,8 @@ where
             }
         }
         let encoded_props_iter = self.props().iter().map(|Property { name, value }| {
-            let encoded_name = percent_encode(name.as_ref().as_bytes(), encoding::QUERY);
-            let encoded_value = percent_encode(value.as_ref().as_bytes(), encoding::QUERY);
+            let encoded_name = percent_encode(name.as_ref().as_bytes(), encoding::PROPS);
+            let encoded_value = percent_encode(value.as_ref().as_bytes(), encoding::PROPS);
             // TODO: How to avoid an allocation here?
             format!("{encoded_name}={encoded_value}")
         });
@@ -570,19 +587,16 @@ pub mod tests {
     }
 
     #[test]
-    #[ignore] // FIXME
     fn encode_decode_reserved_and_special_characters() {
-        // TODO: Test encoding/decoding for all reserved characters
-        //let rfc_3986_reserved_characters = "!#$&'()*+,/:;=?@[]";
-        let label: Label = Label::from_str("~?#Label~?#");
-        let encoded_label = "~?#Label~?#";
-        let facet: Facet = Facet::from_str("~?#Facet~?#");
-        let encoded_facet = "~%3F%23Facet~%3F%23";
+        let label: Label = Label::from_str("!#$&'()*+,/:;=?@[]%Label~!#$&'()*+,/:;=?@[]");
+        let encoded_label = "!#$&'()*+,/:;=?@[]%25Label~!#$&'()*+,/:;=?@[]";
+        let facet: Facet = Facet::from_str("!#$&'()*+,/:;=?@[]%Facet~!#$&'()*+,/:;=?@[]");
+        let encoded_facet = "!%23$&'()*+,/:;=%3F@[]%25Facet~!%23$&'()*+,/:;=%3F@[]";
         let props = vec![Property {
-            name: props::Name::from_str("~?#Name~?#="),
-            value: props::Value::from_str("=~?#Value~?#"),
+            name: props::Name::from_str("!#$&'()*+,/:;=?@[]%Name~!#$&'()*+,/:;=?@[]"),
+            value: props::Value::from_str("!#$&'()*+,/:;=?@[]%Value~!#$&'()*+,/:;=?@[]"),
         }];
-        let encoded_props = "~%3F%23Facet~%3F%23%3D=%3D~%3F%23Value~%3F%23";
+        let encoded_props = "!%23$%26'()*+,/:;%3D?@[]%25Name~!%23$%26'()*+,/:;%3D?@[]=!%23$%26'()*+,/:;%3D?@[]%25Value~!%23$%26'()*+,/:;%3D?@[]";
         let tag = Tag {
             label: label.clone(),
             ..Default::default()

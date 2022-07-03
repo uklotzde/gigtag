@@ -126,22 +126,20 @@ contain a _scheme_ nor an _authority_ component.
 
 The following table defines the component mapping:
 
-|Tag component|URI component|
-|---|---|
-|label|[fragment](https://en.wikipedia.org/wiki/URI_fragment)|
-|facet|path|
-|props|[query](https://en.wikipedia.org/wiki/Query_string)|
+|Tag component|URI component|Percent-encoded character set|
+|---|---|---|
+|label|[fragment](https://en.wikipedia.org/wiki/URI_fragment)|[_fragment percent-encode set_](https://url.spec.whatwg.org/#fragment-percent-encode-set) + `'%'`
+|facet|path|[_path percent-encode set_](https://url.spec.whatwg.org/#path-percent-encode-set) + `'%'`
+|props (name/value)|[query](https://en.wikipedia.org/wiki/Query_string)|[_query percent-encode set_](https://url.spec.whatwg.org/#query-percent-encode-set) + `'%'` + `'&'` + `'='`
 
-Tags, respective their URIs, are serialized as text and
-[percent-encoded](https://en.wikipedia.org/wiki/Percent-encoding)
-according to RFC 2396/1738.
+Tags, respective their URIs, are serialized as text and the
+components are [percent-encoded](https://en.wikipedia.org/wiki/Percent-encoding)
+according to RFC 2396/1738. The above table specifies which characters
+need to be encoded for each tag component. Property names/values are
+encoded separately.
 
 Empty components are considered as absent when parsing a _gig tag_
 from an URI string.
-
-A valid _gig tag_ URI contains either a single `?` character, or a
-single `#` character, or both of them. This is also beneficial for
-distinguishing encoded _gig tags_ from arbitrary text.
 
 #### Examples
 
