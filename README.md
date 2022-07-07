@@ -93,7 +93,7 @@ The following regular expressions could be used:
 
 |Facet|Description|
 |---|---|
-|`played @20220625`|invalid date-like facet that must be rejected by the parser|
+|`played @20220625`|invalid date-like facet with a prefix containing trailing whitespace before the date-like suffix|
 
 ### Prop(ertie)s
 

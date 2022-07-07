@@ -1,0 +1,311 @@
+// SPDX-FileCopyrightText: The gigtags authors
+// SPDX-License-Identifier: MPL-2.0
+
+#![allow(clippy::redundant_clone)]
+
+use compact_str::CompactString;
+
+use super::{
+    facet::{CompactFacet, Facet as _},
+    label::{CompactLabel, Label as _},
+    *,
+};
+
+type Facet = CompactFacet;
+type Label = CompactLabel;
+type Tag = super::Tag<Facet, Label, props::CompactName, CompactString>;
+type DecodedTags = super::DecodedTags<Facet, Label, props::CompactName, CompactString>;
+
+#[test]
+fn empty_tag_is_invalid() {
+    assert!(!Tag::default().is_valid());
+}
+
+#[test]
+fn tag_with_properties_but_neither_label_nor_facet_is_invalid() {
+    assert!(!Tag {
+        props: vec![Property {
+            name: props::Name::from_str("name"),
+            value: props::Value::from_str("value"),
+        },],
+        ..Default::default()
+    }
+    .is_valid());
+}
+
+#[test]
+fn encode_decode() {
+    let label: Label = Label::from_str("My Tag (foo+bar)");
+    let encoded_label = "My%20Tag%20(foo+bar)";
+    let facet: Facet =
+        Facet::from_str("a/date//facet+with ?special#characters and whitespace@20220625");
+    let encoded_facet = "a/date//facet+with%20%3Fspecial%23characters%20and%20whitespace@20220625";
+    let props = vec![
+        Property {
+            name: props::Name::from_str("prop?\n \t1"),
+            value: props::Value::from_str("Hello, World!"),
+        },
+        Property {
+            name: props::Name::from_str("prop #2"),
+            value: props::Value::from_str("0.123"),
+        },
+    ];
+    let encoded_props = "prop?%0A%20%091=Hello,%20World!&prop%20%232=0.123";
+    let tag = Tag {
+        label: label.clone(),
+        ..Default::default()
+    };
+    let encoded = format!("#{encoded_label}");
+    assert_eq!(encoded, tag.encode());
+    assert_eq!(tag, Tag::decode_str(&encoded).unwrap());
+    let tag = Tag {
+        label: label.clone(),
+        facet: facet.clone(),
+        ..Default::default()
+    };
+    let encoded = format!("{encoded_facet}#{encoded_label}");
+    assert_eq!(encoded, tag.encode());
+    assert_eq!(tag, Tag::decode_str(&encoded).unwrap());
+    let tag = Tag {
+        label: label.clone(),
+        props: props.clone(),
+        ..Default::default()
+    };
+    let encoded = format!("?{encoded_props}#{encoded_label}");
+    assert_eq!(encoded, tag.encode());
+    assert_eq!(tag, Tag::decode_str(&encoded).unwrap());
+    let tag = Tag {
+        facet: facet.clone(),
+        props: props.clone(),
+        ..Default::default()
+    };
+    let encoded = format!("{encoded_facet}?{encoded_props}");
+    assert_eq!(encoded, tag.encode());
+    assert_eq!(tag, Tag::decode_str(&encoded).unwrap());
+    let tag = Tag {
+        label: label.clone(),
+        facet: facet.clone(),
+        props: props.clone(),
+    };
+    let encoded = format!("{encoded_facet}?{encoded_props}#{encoded_label}");
+    assert_eq!(encoded, tag.encode());
+    assert_eq!(tag, Tag::decode_str(&encoded).unwrap());
+}
+
+#[test]
+fn encode_decode_reserved_and_special_characters() {
+    let label: Label = Label::from_str("!#$&'()*+,/:;=?@[]%Label~!#$&'()*+,/:;=?@[]");
+    let encoded_label = "!#$&'()*+,/:;=?@[]%25Label~!#$&'()*+,/:;=?@[]";
+    let facet: Facet = Facet::from_str("!#$&'()*+,/:;=?@[]%Facet~!#$&'()*+,/:;=?@[]");
+    let encoded_facet = "!%23$&'()*+,/:;=%3F@[]%25Facet~!%23$&'()*+,/:;=%3F@[]";
+    let props = vec![Property {
+        name: props::Name::from_str("!#$&'()*+,/:;=?@[]%Name~!#$&'()*+,/:;=?@[]"),
+        value: props::Value::from_str("!#$&'()*+,/:;=?@[]%Value~!#$&'()*+,/:;=?@[]"),
+    }];
+    let encoded_props = "!%23$%26'()*+,/:;%3D?@[]%25Name~!%23$%26'()*+,/:;%3D?@[]=!%23$%26'()*+,/:;%3D?@[]%25Value~!%23$%26'()*+,/:;%3D?@[]";
+    let tag = Tag {
+        label: label.clone(),
+        ..Default::default()
+    };
+    let encoded = format!("#{encoded_label}");
+    assert_eq!(encoded, tag.encode());
+    assert_eq!(tag, Tag::decode_str(&encoded).unwrap());
+    let tag = Tag {
+        label: label.clone(),
+        facet: facet.clone(),
+        ..Default::default()
+    };
+    let encoded = format!("{encoded_facet}#{encoded_label}");
+    assert_eq!(encoded, tag.encode());
+    assert_eq!(tag, Tag::decode_str(&encoded).unwrap());
+    let tag = Tag {
+        label: label.clone(),
+        props: props.clone(),
+        ..Default::default()
+    };
+    let encoded = format!("?{encoded_props}#{encoded_label}");
+    assert_eq!(encoded, tag.encode());
+    assert_eq!(tag, Tag::decode_str(&encoded).unwrap());
+    let tag = Tag {
+        facet: facet.clone(),
+        props: props.clone(),
+        ..Default::default()
+    };
+    let encoded = format!("{encoded_facet}?{encoded_props}");
+    assert_eq!(encoded, tag.encode());
+    assert_eq!(tag, Tag::decode_str(&encoded).unwrap());
+    let tag = Tag {
+        label: label.clone(),
+        facet: facet.clone(),
+        props: props.clone(),
+    };
+    let encoded = format!("{encoded_facet}?{encoded_props}#{encoded_label}");
+    assert_eq!(encoded, tag.encode());
+    assert_eq!(tag, Tag::decode_str(&encoded).unwrap());
+}
+
+#[test]
+fn should_fail_to_decode_empty_input() {
+    assert!(Tag::decode_str("").is_err());
+    assert!(Tag::decode_str(" ").is_err());
+    assert!(Tag::decode_str("\t").is_err());
+    assert!(Tag::decode_str("\n").is_err());
+}
+
+#[test]
+fn should_fail_to_decode_leading_or_trailing_whitespace_in_input() {
+    let encoded = "#label";
+    assert!(Tag::decode_str(encoded).is_ok());
+    assert!(Tag::decode_str(&format!(" {encoded}")).is_err());
+    assert!(Tag::decode_str(&format!("{encoded} ")).is_err());
+}
+
+#[test]
+fn should_fail_to_decode_facet_with_leading_slash() {
+    assert!(Tag::decode_str("facet?name=val").is_ok());
+    assert!(Tag::decode_str("/facet?name=val").is_err());
+    assert!(Tag::decode_str("facet#label").is_ok());
+    assert!(Tag::decode_str("//facet#label").is_err());
+}
+
+#[test]
+fn should_fail_to_decode_prop_name_with_leading_or_trailing_whitespace() {
+    assert!(Tag::decode_str("facet?name=val").is_ok());
+    assert!(Tag::decode_str("facet?%20name=val").is_err());
+    assert!(Tag::decode_str("facet?name%20=val").is_err());
+}
+
+#[test]
+fn parse_from_str_allows_leading_or_trailing_whitespace() {
+    assert_eq!("label", " #label".parse::<Tag>().unwrap().label().as_ref());
+    assert_eq!("label", "#label ".parse::<Tag>().unwrap().label().as_ref());
+    assert_eq!(
+        "@20220625",
+        " @20220625".parse::<Tag>().unwrap().facet().as_ref()
+    );
+    assert_eq!(
+        "@20220625",
+        "@20220625 ".parse::<Tag>().unwrap().facet().as_ref()
+    );
+}
+
+#[test]
+fn tags_with_date_facets() {
+    let facet_with_date_only: Facet = Facet::from_str("@20220625");
+    let tag = Tag {
+        facet: facet_with_date_only,
+        ..Default::default()
+    };
+    assert!(tag.is_valid());
+    assert!(tag.facet().has_date_like_suffix());
+
+    let facet_with_text_and_date: Facet = Facet::from_str("text@20220625");
+    let tag = Tag {
+        facet: facet_with_text_and_date,
+        ..tag
+    };
+    assert!(tag.is_valid());
+    assert!(tag.facet().has_date_like_suffix());
+
+    let facet_without_date_suffix: Facet = Facet::from_str("20220625");
+    let tag = Tag {
+        facet: facet_without_date_suffix,
+        ..tag
+    };
+    assert!(!tag.is_valid());
+    assert!(!tag.facet().has_date_like_suffix());
+}
+
+#[test]
+fn reencode() {
+    fn reencode(encoded: &str) {
+        let decoded = Tag::decode_str(encoded).unwrap();
+        let mut reencoded = String::new();
+        decoded.encode_into(&mut reencoded).unwrap();
+        assert_eq!(encoded, reencoded);
+    }
+    reencode("#My%20Label");
+    reencode("?name=val#My%20Label");
+    reencode("@20220625");
+    reencode("@20220625#My%20Label");
+    reencode("@20220625?name=val1&name=val2");
+    reencode("@20220625?name=val#My%20Label");
+    reencode("a%20facet@20220625");
+    reencode("a%20facet@20220625#My%20Label");
+    reencode("a%20facet@20220625?name=val");
+    reencode("a%20facet@20220625?name=val#My%20Label");
+}
+
+#[test]
+fn should_fail_to_decode_date_facet_with_whitespace_before_suffix() {
+    assert!(Tag::decode_str("@20220625").is_ok());
+    assert!(Tag::decode_str("a%20facet@20220625").is_ok());
+    assert!(Tag::decode_str("a%20facet%20@20220625").is_err()); // space ' '
+    assert!(Tag::decode_str("a%20facet%09@20220625").is_err()); // tab '\t'
+    assert!(Tag::decode_str("a%20facet%0A@20220625").is_err()); // newline '\n'
+}
+
+#[test]
+fn decoding_should_skip_empty_components() {
+    assert!(Tag::decode_str("@20220625").is_ok());
+    assert!(Tag::decode_str("@20220625?").is_ok());
+    assert!(Tag::decode_str("@20220625#").is_ok());
+    assert!(Tag::decode_str("@20220625?#").is_ok());
+    assert!(Tag::decode_str("?#label").is_ok());
+}
+
+#[test]
+fn decode_and_reencode_single_tag_without_leading_or_trailing_whitespace() {
+    let decoded_tags = DecodedTags::decode_str("#Tag1");
+    assert!(decoded_tags.undecoded_prefix.is_empty());
+    let reencoded = decoded_tags.reencode().unwrap();
+    assert_eq!("#Tag1", reencoded);
+}
+
+#[test]
+fn decode_and_reencode_tags_exhaustive() {
+    let decoded = DecodedTags::decode_str("  #Tag1\t#Tag%202  wishlist@20220526#Someone \n");
+    assert!(decoded.undecoded_prefix.is_empty());
+    let reencoded = decoded.reencode().unwrap();
+    assert_eq!("#Tag1 #Tag%202 wishlist@20220526#Someone", reencoded);
+}
+
+#[test]
+fn decode_and_reencode_tags_partially() {
+    let undecoded_prefix = "This text should be preserved including the trailing newline\n";
+    let encoded = format!("{undecoded_prefix}#Tag1\t#Tag%202  wishlist@20220526#Someone \n");
+    let decoded = DecodedTags::decode_str(&encoded);
+    assert_eq!(undecoded_prefix, decoded.undecoded_prefix);
+    assert_eq!(3, decoded.tags.len());
+    let reencoded = decoded.reencode().unwrap();
+    assert_eq!(
+        format!("{undecoded_prefix}#Tag1 #Tag%202 wishlist@20220526#Someone"),
+        reencoded
+    );
+}
+
+#[test]
+fn reorder_date_like_tags() {
+    let mut decoded = DecodedTags::decode_str(
+        " Arbitrary comments with\twhitespace  before the first\n valid gig tag\t @20220624#Label
+            wishlist@20220625 #first_gigtag @20220624#Label   wishlist@20220625\n
+            @20220626#Label #first_gigtag @20220626#Label",
+    );
+    decoded.reorder_date_like();
+    let mut reencoded = String::new();
+    assert!(decoded.encode_into(&mut reencoded).is_ok());
+    assert_eq!(" Arbitrary comments with\twhitespace  before the first\n valid gig tag\t #first_gigtag #first_gigtag @20220626#Label @20220626#Label wishlist@20220625 wishlist@20220625 @20220624#Label @20220624#Label", reencoded);
+}
+
+#[test]
+fn dedup_tags() {
+    let mut decoded = DecodedTags::decode_str(
+        " Arbitrary comments with\twhitespace  before the first\n valid gig tag\t@20220624#Label
+            wishlist@20220625 #first_gigtag @20220624#Label   wishlist@20220625\n
+            @20220626#Label #first_gigtag @20220626#Label",
+    );
+    decoded.dedup();
+    let mut reencoded = String::new();
+    assert!(decoded.encode_into(&mut reencoded).is_ok());
+    assert_eq!(" Arbitrary comments with\twhitespace  before the first\n valid gig tag\t@20220624#Label wishlist@20220625 #first_gigtag @20220626#Label", reencoded);
+}
