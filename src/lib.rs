@@ -273,6 +273,10 @@ where
         }
         let parse_options = Url::options().base_url(Some(dummy_base_url()));
         let url: Url = parse_options.parse(encoded)?;
+        if url.scheme() != dummy_base_url().scheme() || url.has_host() || !url.username().is_empty()
+        {
+            return Err(anyhow::anyhow!("invalid encoded input").into());
+        }
         let fragment = url.fragment().unwrap_or_default();
         debug_assert_eq!(fragment.trim(), fragment);
         let label_encoded = fragment.as_bytes();

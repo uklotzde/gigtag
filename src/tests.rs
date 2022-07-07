@@ -22,8 +22,48 @@ fn empty_tag_is_invalid() {
 }
 
 #[test]
-fn tag_with_properties_but_neither_label_nor_facet_is_invalid() {
+fn tag_with_only_a_label_is_valid() {
+    assert!(Tag {
+        label: Label::from_str("A label"),
+        ..Default::default()
+    }
+    .is_valid());
+}
+
+#[test]
+fn tag_with_only_a_date_like_facet_is_valid() {
+    assert!(Tag {
+        facet: Facet::from_str("@01234567"),
+        ..Default::default()
+    }
+    .is_valid());
+}
+
+#[test]
+fn tag_with_only_a_non_date_like_facet_is_invalid() {
     assert!(!Tag {
+        facet: Facet::from_str("non-date-like-facet"),
+        ..Default::default()
+    }
+    .is_valid());
+}
+
+#[test]
+fn tag_with_only_properties_is_invalid() {
+    assert!(!Tag {
+        props: vec![Property {
+            name: props::Name::from_str("name"),
+            value: props::Value::from_str("value"),
+        },],
+        ..Default::default()
+    }
+    .is_valid());
+}
+
+#[test]
+fn tag_with_only_a_non_date_like_facet_and_props_is_valid() {
+    assert!(Tag {
+        facet: Facet::from_str("non-date-like-facet"),
         props: vec![Property {
             name: props::Name::from_str("name"),
             value: props::Value::from_str("value"),
@@ -150,10 +190,11 @@ fn should_fail_to_decode_empty_input() {
     assert!(Tag::decode_str(" ").is_err());
     assert!(Tag::decode_str("\t").is_err());
     assert!(Tag::decode_str("\n").is_err());
+    assert!(Tag::decode_str(" \t \n ").is_err());
 }
 
 #[test]
-fn should_fail_to_decode_leading_or_trailing_whitespace_in_input() {
+fn should_fail_to_decode_leading_input_with_leading_or_trailing_whitespace() {
     let encoded = "#label";
     assert!(Tag::decode_str(encoded).is_ok());
     assert!(Tag::decode_str(&format!(" {encoded}")).is_err());
@@ -162,10 +203,29 @@ fn should_fail_to_decode_leading_or_trailing_whitespace_in_input() {
 
 #[test]
 fn should_fail_to_decode_facet_with_leading_slash() {
-    assert!(Tag::decode_str("facet?name=val").is_ok());
-    assert!(Tag::decode_str("/facet?name=val").is_err());
-    assert!(Tag::decode_str("facet#label").is_ok());
-    assert!(Tag::decode_str("//facet#label").is_err());
+    assert!(Tag::decode_str("fa/cet?name=val").is_ok());
+    assert!(Tag::decode_str("/fa/cet?name=val").is_err());
+    assert!(Tag::decode_str("//fa/cet?name=val").is_err());
+    assert!(Tag::decode_str("fa/cet#label").is_ok());
+    assert!(Tag::decode_str("/fa/cet#label").is_err());
+    assert!(Tag::decode_str("//fa/cet#label").is_err());
+    assert!(Tag::decode_str("@12345678").is_ok());
+    assert!(Tag::decode_str("/@12345678").is_err());
+    assert!(Tag::decode_str("//@12345678").is_err());
+}
+
+#[test]
+fn should_fail_to_decode_invalid_input() {
+    assert!(Tag::decode_str("reserved#character").is_ok());
+    assert!(Tag::decode_str("reserved:#character").is_err());
+    assert!(Tag::decode_str("@01234567").is_ok());
+    assert!(Tag::decode_str("01234567").is_err());
+    assert!(Tag::decode_str("@01234567?").is_ok());
+    assert!(Tag::decode_str("01234567?").is_err());
+    assert!(Tag::decode_str("@01234567#").is_ok());
+    assert!(Tag::decode_str("01234567#").is_err());
+    assert!(Tag::decode_str("@01234567?#").is_ok());
+    assert!(Tag::decode_str("01234567?#").is_err());
 }
 
 #[test]
