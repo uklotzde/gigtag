@@ -531,9 +531,9 @@ pub mod tests {
         let label: Label = Label::from_str("My Tag (foo+bar)");
         let encoded_label = "My%20Tag%20(foo+bar)";
         let facet: Facet =
-            Facet::from_str("a/date//facet+with ?special#characters and whitespace~20220625");
+            Facet::from_str("a/date//facet+with ?special#characters and whitespace@20220625");
         let encoded_facet =
-            "a/date//facet+with%20%3Fspecial%23characters%20and%20whitespace~20220625";
+            "a/date//facet+with%20%3Fspecial%23characters%20and%20whitespace@20220625";
         let props = vec![
             Property {
                 name: props::Name::from_str("prop?\n \t1"),
@@ -677,7 +677,7 @@ pub mod tests {
 
     #[test]
     fn tags_with_date_facets() {
-        let facet_with_date_only: Facet = Facet::from_str("~20220625");
+        let facet_with_date_only: Facet = Facet::from_str("@20220625");
         let tag = Tag {
             facet: facet_with_date_only,
             ..Default::default()
@@ -685,7 +685,7 @@ pub mod tests {
         assert!(tag.is_valid());
         assert!(tag.facet().has_date_like_suffix());
 
-        let facet_with_text_and_date: Facet = Facet::from_str("text~20220625");
+        let facet_with_text_and_date: Facet = Facet::from_str("text@20220625");
         let tag = Tag {
             facet: facet_with_text_and_date,
             ..tag
@@ -712,31 +712,31 @@ pub mod tests {
         }
         reencode("#My%20Label");
         reencode("?name=val#My%20Label");
-        reencode("~20220625");
-        reencode("~20220625#My%20Label");
-        reencode("~20220625?name=val1&name=val2");
-        reencode("~20220625?name=val#My%20Label");
-        reencode("a%20facet~20220625");
-        reencode("a%20facet~20220625#My%20Label");
-        reencode("a%20facet~20220625?name=val");
-        reencode("a%20facet~20220625?name=val#My%20Label");
+        reencode("@20220625");
+        reencode("@20220625#My%20Label");
+        reencode("@20220625?name=val1&name=val2");
+        reencode("@20220625?name=val#My%20Label");
+        reencode("a%20facet@20220625");
+        reencode("a%20facet@20220625#My%20Label");
+        reencode("a%20facet@20220625?name=val");
+        reencode("a%20facet@20220625?name=val#My%20Label");
     }
 
     #[test]
     fn should_fail_to_decode_date_facet_with_whitespace_before_suffix() {
-        assert!(Tag::decode_str("~20220625").is_ok());
-        assert!(Tag::decode_str("a%20facet~20220625").is_ok());
-        assert!(Tag::decode_str("a%20facet%20~20220625").is_err()); // space ' '
-        assert!(Tag::decode_str("a%20facet%09~20220625").is_err()); // tab '\t'
-        assert!(Tag::decode_str("a%20facet%0A~20220625").is_err()); // newline '\n'
+        assert!(Tag::decode_str("@20220625").is_ok());
+        assert!(Tag::decode_str("a%20facet@20220625").is_ok());
+        assert!(Tag::decode_str("a%20facet%20@20220625").is_err()); // space ' '
+        assert!(Tag::decode_str("a%20facet%09@20220625").is_err()); // tab '\t'
+        assert!(Tag::decode_str("a%20facet%0A@20220625").is_err()); // newline '\n'
     }
 
     #[test]
     fn decoding_should_skip_empty_components() {
-        assert!(Tag::decode_str("~20220625").is_ok());
-        assert!(Tag::decode_str("~20220625?").is_ok());
-        assert!(Tag::decode_str("~20220625#").is_ok());
-        assert!(Tag::decode_str("~20220625?#").is_ok());
+        assert!(Tag::decode_str("@20220625").is_ok());
+        assert!(Tag::decode_str("@20220625?").is_ok());
+        assert!(Tag::decode_str("@20220625#").is_ok());
+        assert!(Tag::decode_str("@20220625?#").is_ok());
         assert!(Tag::decode_str("?#label").is_ok());
     }
 
@@ -750,22 +750,22 @@ pub mod tests {
 
     #[test]
     fn decode_and_reencode_tags_exhaustive() {
-        let decoded = DecodedTags::decode_str("  #Tag1\t#Tag%202  wishlist~20220526#Someone \n");
+        let decoded = DecodedTags::decode_str("  #Tag1\t#Tag%202  wishlist@20220526#Someone \n");
         assert!(decoded.undecoded_prefix.is_empty());
         let reencoded = decoded.reencode().unwrap();
-        assert_eq!("#Tag1 #Tag%202 wishlist~20220526#Someone", reencoded);
+        assert_eq!("#Tag1 #Tag%202 wishlist@20220526#Someone", reencoded);
     }
 
     #[test]
     fn decode_and_reencode_tags_partially() {
         let undecoded_prefix = "This text should be preserved including the trailing newline\n";
-        let encoded = format!("{undecoded_prefix}#Tag1\t#Tag%202  wishlist~20220526#Someone \n");
+        let encoded = format!("{undecoded_prefix}#Tag1\t#Tag%202  wishlist@20220526#Someone \n");
         let decoded = DecodedTags::decode_str(&encoded);
         assert_eq!(undecoded_prefix, decoded.undecoded_prefix);
         assert_eq!(3, decoded.tags.len());
         let reencoded = decoded.reencode().unwrap();
         assert_eq!(
-            format!("{undecoded_prefix}#Tag1 #Tag%202 wishlist~20220526#Someone"),
+            format!("{undecoded_prefix}#Tag1 #Tag%202 wishlist@20220526#Someone"),
             reencoded
         );
     }
@@ -774,25 +774,25 @@ pub mod tests {
     fn reorder_date_like_tags() {
         let mut decoded =
         DecodedTags::decode_str(
-    " Arbitrary comments with\twhitespace  before the first\n valid gig tag\t ~20220624#Label
-            wishlist~20220625 #first_gigtag ~20220624#Label   wishlist~20220625\n
-            ~20220626#Label #first_gigtag ~20220626#Label");
+    " Arbitrary comments with\twhitespace  before the first\n valid gig tag\t @20220624#Label
+            wishlist@20220625 #first_gigtag @20220624#Label   wishlist@20220625\n
+            @20220626#Label #first_gigtag @20220626#Label");
         decoded.reorder_date_like();
         let mut reencoded = String::new();
         assert!(decoded.encode_into(&mut reencoded).is_ok());
-        assert_eq!(" Arbitrary comments with\twhitespace  before the first\n valid gig tag\t #first_gigtag #first_gigtag ~20220626#Label ~20220626#Label wishlist~20220625 wishlist~20220625 ~20220624#Label ~20220624#Label", reencoded);
+        assert_eq!(" Arbitrary comments with\twhitespace  before the first\n valid gig tag\t #first_gigtag #first_gigtag @20220626#Label @20220626#Label wishlist@20220625 wishlist@20220625 @20220624#Label @20220624#Label", reencoded);
     }
 
     #[test]
     fn dedup_tags() {
         let mut decoded =
         DecodedTags::decode_str(
-    " Arbitrary comments with\twhitespace  before the first\n valid gig tag\t~20220624#Label
-            wishlist~20220625 #first_gigtag ~20220624#Label   wishlist~20220625\n
-            ~20220626#Label #first_gigtag ~20220626#Label");
+    " Arbitrary comments with\twhitespace  before the first\n valid gig tag\t@20220624#Label
+            wishlist@20220625 #first_gigtag @20220624#Label   wishlist@20220625\n
+            @20220626#Label #first_gigtag @20220626#Label");
         decoded.dedup();
         let mut reencoded = String::new();
         assert!(decoded.encode_into(&mut reencoded).is_ok());
-        assert_eq!(" Arbitrary comments with\twhitespace  before the first\n valid gig tag\t~20220624#Label wishlist~20220625 #first_gigtag ~20220626#Label", reencoded);
+        assert_eq!(" Arbitrary comments with\twhitespace  before the first\n valid gig tag\t@20220624#Label wishlist@20220625 #first_gigtag @20220626#Label", reencoded);
     }
 }

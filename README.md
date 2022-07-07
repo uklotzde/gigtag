@@ -58,7 +58,7 @@ editable nor directly displayed in the UI.
 
 A reserved suffix could be used to encode a calendar date into facets.
 
-Facets that end with a `~` character followed by 8 decimal digits
+Facets that end with a `@` character followed by 8 decimal digits
 are considered as _date-like facets_. The digits are supposed to
 encode an ISO 8601 calendar date without a time zone in the format
 `yyyyMMdd`.
@@ -68,7 +68,7 @@ not encode a valid date. This less restrictive constraints have
 been chosen deliberately to allow using regular expressions for
 recognizing date-like facets.
 
-The `~` character of the date suffix must follow the preceding text
+The `@` character of the date suffix must follow the preceding text
 without any intermediate whitespace. Thus the remaining prefix after
 stripping the date-like suffix remains a valid facet.
 
@@ -76,24 +76,24 @@ The following regular expressions could be used:
 
 |Regex|Description|
 |---|---|
-|`(^|[^\s])~\d{8}$`|Recognize date-like facets|
-|`[\s]+~\d{8}$`|Reject facets with a date-like suffix if preceded by whitespace|
+|`(^|[^\s])@\d{8}$`|Recognize date-like facets|
+|`[\s]+@\d{8}$`|Reject facets with a date-like suffix if preceded by whitespace|
 
 #### Valid examples
 
 |Facet|Description|
 |---|---|
 |`spotify`|a tag for encoding properties related to Spotify|
-|`~20220625`|date-like facet without a prefix that denotes the calendar day 2022-06-25 in any time zone|
-|`wishlist~20220625`|date-like facet with prefix `wishlist` that denotes the calendar day 2022-06-25 in any time zone|
-|`~00000000`|date-like facet without a prefix and an invalid date|
-|`abc xyz~99999999`|date-like facet with prefix `abc xyz` and an invalid date|
+|`@20220625`|date-like facet without a prefix that denotes the calendar day 2022-06-25 in any time zone|
+|`wishlist@20220625`|date-like facet with prefix `wishlist` that denotes the calendar day 2022-06-25 in any time zone|
+|`@00000000`|date-like facet without a prefix and an invalid date|
+|`abc xyz@99999999`|date-like facet with prefix `abc xyz` and an invalid date|
 
 #### Invalid examples
 
 |Facet|Description|
 |---|---|
-|`played ~20220625`|invalid date-like facet that must be rejected by the parser|
+|`played @20220625`|invalid date-like facet that must be rejected by the parser|
 
 ### Prop(ertie)s
 
@@ -149,8 +149,8 @@ that are ignored when decoding the URI.
 |Encoded|Facet|Date|Label|Props: Names|Props: Values
 |---|---|---|---|---|---|
 |`#MyTag`<br>`?#MyTag`|||`MyTag`|
-|`wishlist~20220625#For%20you`|`wishlist~20220625`|2022-06-25|`For you`|
-|`played~20220625`<br>`played~20220625?`<br>`played20220625#`<br>`played~20220625?#`|`played~20220625`|2022-06-25|
+|`wishlist@20220625#For%20you`|`wishlist@20220625`|2022-06-25|`For you`|
+|`played@20220625`<br>`played@20220625?`<br>`played20220625#`<br>`played@20220625?#`|`played@20220625`|2022-06-25|
 |`audio-features?energy=0.78&valence=0.61`<br>`audio-features?energy=0.78&valence=0.61#`|`audio-features`|||`energy`<br>`valence`|`0.78`<br>`0.61`|
 
 #### Examples (invalid)
@@ -162,7 +162,7 @@ The following tokens do not represent valid _gig tags_:
 |`https://#MyTag`|URL scheme/authority are present|
 |`My%20Tag`|Only a facet without a date, neither a label nor props|
 |`/my-facet#Label`|Facet starts with a `/`|
-|`wishlist%20~20220625#Label`|Date suffix in facet is prefixed by whitespace|
+|`wishlist%20@20220625#Label`|Date suffix in facet is prefixed by whitespace|
 |`?=val#Label`|Empty property name|
 |`?name=my+val#My label`|Special characters like `+` and whitespace are not percent-encoded|
 |`#`|Empty label is considered as absent|

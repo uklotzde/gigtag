@@ -57,27 +57,32 @@ pub fn try_split_into_prefix_and_parse_date_suffix(facet: &str) -> Option<(&str,
     (prefix, date).into()
 }
 
-const DATE_SUFFIX_FORMAT: &[FormatItem<'static>] = format_description!("~[year][month][day]");
+const DATE_SUFFIX_FORMAT: &[FormatItem<'static>] = format_description!("@[year][month][day]");
 
-// ~yyyyMMdd
+// @yyyyMMdd
 const DATE_LIKE_SUFFIX_LEN: usize = 1 + 8;
+
+const DATE_LIKE_SUFFIX_REGEX_STR: &str = r"(^|[^\s])@\d{8}$";
 
 static DATE_LIKE_SUFFIX_REGEX: OnceCell<Regex> = OnceCell::new();
 
 #[must_use]
 fn date_like_suffix_regex() -> &'static Regex {
-    // The '~' separator of the date-like digits must not be preceded by
+    // The '@' separator of the date-like digits must not be preceded by
     // a whitespace i.e. the facet either equals the date-like suffix
     // or the separator is preceded by a non-whitespace character.
-    DATE_LIKE_SUFFIX_REGEX.get_or_init(|| r"(^|[^\s])~\d{8}$".parse().unwrap())
+    DATE_LIKE_SUFFIX_REGEX.get_or_init(|| DATE_LIKE_SUFFIX_REGEX_STR.parse().unwrap())
 }
+
+const INVALID_DATE_LIKE_SUFFIX_REGEX_STR: &str = r"[\s]+@\d{8}$";
 
 static INVALID_DATE_LIKE_SUFFIX_REGEX: OnceCell<Regex> = OnceCell::new();
 
 #[must_use]
 fn invalid_date_like_suffix_regex() -> &'static Regex {
     // Reject facets with date-like suffixes that are preceded by a whitespace character
-    INVALID_DATE_LIKE_SUFFIX_REGEX.get_or_init(|| r"[\s]+~\d{8}$".parse().unwrap())
+    INVALID_DATE_LIKE_SUFFIX_REGEX
+        .get_or_init(|| INVALID_DATE_LIKE_SUFFIX_REGEX_STR.parse().unwrap())
 }
 
 /// Check a string for an invalid date-like suffix.
@@ -300,12 +305,12 @@ pub mod tests {
     #[test]
     fn try_split_into_prefix_and_date_like_suffix_should_accept_and_preserve_invalid_whitespace() {
         let date = Date::from_calendar_date(2022, time::Month::June, 25).unwrap();
-        let facet = Facet::from_str("~20220625");
+        let facet = Facet::from_str("@20220625");
         assert_eq!(
             ("", Some(date)),
             facet.try_split_into_prefix_and_parse_date_suffix().unwrap()
         );
-        let facet = Facet::from_str("a \tb c\n ~20220625");
+        let facet = Facet::from_str("a \tb c\n @20220625");
         assert_eq!(
             ("a \tb c\n ", Some(date)),
             facet.try_split_into_prefix_and_parse_date_suffix().unwrap()
@@ -314,27 +319,27 @@ pub mod tests {
 
     #[test]
     fn try_split_into_prefix_and_date_like_suffix_should_accept_invalid_dates() {
-        let facet = Facet::from_str("~00000000");
+        let facet = Facet::from_str("@00000000");
         assert_eq!(
-            ("", "~00000000"),
+            ("", "@00000000"),
             facet.try_split_into_prefix_and_date_like_suffix().unwrap()
         );
         assert_eq!(
             ("", None),
             facet.try_split_into_prefix_and_parse_date_suffix().unwrap()
         );
-        let facet = Facet::from_str("abc~99999999");
+        let facet = Facet::from_str("abc@99999999");
         assert_eq!(
-            ("abc", "~99999999"),
+            ("abc", "@99999999"),
             facet.try_split_into_prefix_and_date_like_suffix().unwrap()
         );
         assert_eq!(
             ("abc", None),
             facet.try_split_into_prefix_and_parse_date_suffix().unwrap()
         );
-        let facet = Facet::from_str("abc ~19700230");
+        let facet = Facet::from_str("abc @19700230");
         assert_eq!(
-            ("abc ", "~19700230"),
+            ("abc ", "@19700230"),
             facet.try_split_into_prefix_and_date_like_suffix().unwrap()
         );
         assert_eq!(
@@ -345,9 +350,9 @@ pub mod tests {
 
     #[test]
     fn has_date_like_suffix() {
-        assert!(super::has_date_like_suffix("~20220625"));
-        assert!(super::has_date_like_suffix("a~20220625"));
-        assert!(!super::has_date_like_suffix("a ~20220625"));
+        assert!(super::has_date_like_suffix("@20220625"));
+        assert!(super::has_date_like_suffix("a@20220625"));
+        assert!(!super::has_date_like_suffix("a @20220625"));
         assert!(!super::has_date_like_suffix("a-20220625"));
         assert!(!super::has_date_like_suffix("a20220625"));
     }
