@@ -202,6 +202,20 @@ fn should_fail_to_decode_leading_input_with_leading_or_trailing_whitespace() {
 }
 
 #[test]
+fn should_fail_to_decode_label_with_leading_or_trailing_whitespace() {
+    assert!(Tag::decode_str("#label").is_ok());
+    assert!(Tag::decode_str("#%20label").is_err());
+    assert!(Tag::decode_str("#label%20").is_err());
+}
+
+#[test]
+fn should_fail_to_decode_facet_with_leading_or_trailing_whitespace() {
+    assert!(Tag::decode_str("facet#label").is_ok());
+    assert!(Tag::decode_str("%20facet#label").is_err());
+    assert!(Tag::decode_str("facet%20#label").is_err());
+}
+
+#[test]
 fn should_fail_to_decode_facet_with_leading_slash() {
     assert!(Tag::decode_str("fa/cet?name=val").is_ok());
     assert!(Tag::decode_str("/fa/cet?name=val").is_err());
@@ -280,6 +294,7 @@ fn tags_with_date_facets() {
 fn reencode() {
     fn reencode(encoded: &str) {
         let decoded = Tag::decode_str(encoded).unwrap();
+        assert!(decoded.is_valid());
         let mut reencoded = String::new();
         decoded.encode_into(&mut reencoded).unwrap();
         assert_eq!(encoded, reencoded);
@@ -297,12 +312,17 @@ fn reencode() {
 }
 
 #[test]
-fn should_fail_to_decode_date_facet_with_whitespace_before_suffix() {
+fn should_fail_to_decode_date_like_facet_with_whitespace_before_suffix() {
     assert!(Tag::decode_str("@20220625").is_ok());
+    assert!(Tag::decode_str("%09@20220625").is_err()); // leading tab '\t' in facet
+    assert!(Tag::decode_str("@20220625%09").is_err()); // trailing tab '\t' in facet
     assert!(Tag::decode_str("a%20facet@20220625").is_ok());
     assert!(Tag::decode_str("a%20facet%20@20220625").is_err()); // space ' '
+    assert!(Tag::decode_str("a%20facet%2020220625#label").is_ok()); // space ' ', but not date-like
     assert!(Tag::decode_str("a%20facet%09@20220625").is_err()); // tab '\t'
+    assert!(Tag::decode_str("a%20facet%0920220625#label").is_ok()); // tab '\t', but not date-like
     assert!(Tag::decode_str("a%20facet%0A@20220625").is_err()); // newline '\n'
+    assert!(Tag::decode_str("a%20facet%0A20220625#label").is_ok()); // newline '\n', but not date-like
 }
 
 #[test]
