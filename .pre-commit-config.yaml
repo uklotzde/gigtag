@@ -33,6 +33,11 @@ repos:
     hooks:
       - id: codespell
         args: [--ignore-words=.codespellignore]
+  # https://reuse.software
+  - repo: https://github.com/fsfe/reuse-tool
+    rev: v1.0.0
+    hooks:
+      - id: reuse
   - repo: https://github.com/doublify/pre-commit-rust
     rev: v1.0
     hooks:
@@ -49,11 +54,6 @@ repos:
             -D,
             warnings,
           ]
-  # https://reuse.software
-  - repo: https://github.com/fsfe/reuse-tool
-    rev: v1.0.0
-    hooks:
-      - id: reuse
   - repo: local
     hooks:
       - id: cargo-doc
