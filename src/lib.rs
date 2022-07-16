@@ -467,15 +467,17 @@ where
 
     /// Reorder tags with date-like facets by their date-like suffix (descending).
     ///
-    /// Tags with a date-like facet are sorted after all other tags.
+    /// no facet < non-date-like facet < date-like facet
+    ///
     /// Tags with a date-like facet are sorted in descending order by their date-like suffix.
-    // Using unwrap() is safe after we already checked that
-    // the contents of both facets match the date-like format.
+    /// The other groups are sorted by facet, then by label.
     #[allow(clippy::missing_panics_doc)]
-    pub fn reorder_date_like(&mut self) {
+    pub fn reorder(&mut self) {
         self.tags.sort_by(|lhs, rhs| {
             if rhs.facet().has_date_like_suffix() {
                 if lhs.facet().has_date_like_suffix() {
+                    // Using unwrap() is safe after we already checked that
+                    // the contents of both facets match the date-like format.
                     let (_, lhs_suffix) = lhs
                         .facet()
                         .try_split_into_prefix_and_date_like_suffix()
@@ -485,14 +487,26 @@ where
                         .try_split_into_prefix_and_date_like_suffix()
                         .unwrap();
                     // Descending order by decimal digits encoded as ASCII chars
-                    rhs_suffix.cmp(lhs_suffix)
+                    rhs_suffix
+                        .cmp(lhs_suffix)
+                        .then_with(|| lhs.label().cmp(rhs.label()))
                 } else {
                     Ordering::Less
                 }
             } else if lhs.facet().has_date_like_suffix() {
                 Ordering::Greater
+            } else if rhs.has_facet() {
+                if lhs.has_facet() {
+                    lhs.facet()
+                        .cmp(rhs.facet())
+                        .then_with(|| lhs.label().cmp(rhs.label()))
+                } else {
+                    Ordering::Less
+                }
+            } else if lhs.has_facet() {
+                Ordering::Greater
             } else {
-                Ordering::Equal
+                lhs.label().cmp(rhs.label())
             }
         });
     }

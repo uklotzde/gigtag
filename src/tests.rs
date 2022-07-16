@@ -365,16 +365,16 @@ fn decode_and_reencode_tags_partially() {
 }
 
 #[test]
-fn reorder_date_like_tags() {
+fn reorder_tags() {
     let mut decoded = DecodedTags::decode_str(
-        " Arbitrary comments with\twhitespace  before the first\n valid gig tag\t @20220624#Label
-            wishlist@20220625 #first_gigtag @20220624#Label   wishlist@20220625\n
-            @20220626#Label #first_gigtag @20220626#Label",
+        " Arbitrary comments with\twhitespace  before the first\n valid gig tag\t #b @20220624#label
+            wishlist@20220625 #C @20220624#Label #A  wishlist@20220625\n
+            @20220626#Label non-data-like-facet#a non-data-like-facet#B @20220626#Label",
     );
-    decoded.reorder_date_like();
+    decoded.reorder();
     let mut reencoded = String::new();
     assert!(decoded.encode_into(&mut reencoded).is_ok());
-    assert_eq!(" Arbitrary comments with\twhitespace  before the first\n valid gig tag\t #first_gigtag #first_gigtag @20220626#Label @20220626#Label wishlist@20220625 wishlist@20220625 @20220624#Label @20220624#Label", reencoded);
+    assert_eq!(" Arbitrary comments with\twhitespace  before the first\n valid gig tag\t #A #C #b non-data-like-facet#B non-data-like-facet#a @20220626#Label @20220626#Label wishlist@20220625 wishlist@20220625 @20220624#Label @20220624#label", reencoded);
 }
 
 #[test]
