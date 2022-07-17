@@ -23,7 +23,7 @@ pub fn is_name_empty(name: &str) -> bool {
 }
 
 /// Common trait for names
-pub trait Name: AsRef<str> + Default + Sized {
+pub trait Name: AsRef<str> + Default + PartialEq + Sized {
     /// Crate a name from a borrowed string slice.
     ///
     /// The argument must be a valid name.
@@ -171,7 +171,7 @@ impl Name for StdName {
 }
 
 /// Common trait for values
-pub trait Value: AsRef<str> + Default + Sized {
+pub trait Value: AsRef<str> + Default + PartialEq + Sized {
     /// Crate a value from a borrowed string slice.
     ///
     /// The argument must be a valid value.

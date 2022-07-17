@@ -26,7 +26,6 @@ pub mod docs {
 
 use std::{
     cmp::Ordering,
-    collections::HashSet,
     fmt,
     str::{FromStr, Utf8Error},
 };
@@ -458,21 +457,19 @@ where
         Ok(reencoded)
     }
 
-    /// Remove duplicate tags.
-    pub fn dedup(&mut self) {
-        let mut encoded: HashSet<_> = self.tags.iter().map(ToString::to_string).collect();
-        self.tags
-            .retain(|tag| encoded.take(&tag.to_string()).is_some());
-    }
-
-    /// Reorder tags with date-like facets by their date-like suffix (descending).
+    /// Reorder and deduplicate tags.
     ///
-    /// no facet < non-date-like facet < date-like facet
+    /// Canonical ordering:
+    ///   1. Tags without a facet
+    ///   2. Tags with a non-date-like facet
+    ///   3. Tags with a date-like facet (by descending suffix)
     ///
-    /// Tags with a date-like facet are sorted in descending order by their date-like suffix.
-    /// The other groups are sorted by facet, then by label.
+    /// Within each group tags are sorted by facet, then by label.
+    ///
+    /// Tags with a date-like facet are sorted in descending order by their
+    /// date-like suffix, i.e. newer dates are sorted before older dates.
     #[allow(clippy::missing_panics_doc)]
-    pub fn reorder(&mut self) {
+    pub fn dedup_and_reorder(&mut self) {
         self.tags.sort_by(|lhs, rhs| {
             if rhs.facet().has_date_like_suffix() {
                 if lhs.facet().has_date_like_suffix() {
@@ -489,6 +486,7 @@ where
                     // Descending order by decimal digits encoded as ASCII chars
                     rhs_suffix
                         .cmp(lhs_suffix)
+                        .then_with(|| lhs.facet().cmp(rhs.facet()))
                         .then_with(|| lhs.label().cmp(rhs.label()))
                 } else {
                     Ordering::Less
@@ -509,6 +507,7 @@ where
                 lhs.label().cmp(rhs.label())
             }
         });
+        self.tags.dedup();
     }
 }
 

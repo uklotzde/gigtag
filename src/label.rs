@@ -23,7 +23,7 @@ pub fn is_empty(label: &str) -> bool {
 }
 
 /// Common trait for labels
-pub trait Label: AsRef<str> + Default + Ord + Sized {
+pub trait Label: AsRef<str> + Default + PartialEq + Ord + Sized {
     /// Crate a label from a borrowed string slice.
     ///
     /// The argument must be a valid label.
