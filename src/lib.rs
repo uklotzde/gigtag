@@ -469,7 +469,7 @@ where
     /// Tags with a date-like facet are sorted in descending order by their
     /// date-like suffix, i.e. newer dates are sorted before older dates.
     #[allow(clippy::missing_panics_doc)]
-    pub fn dedup_and_reorder(&mut self) {
+    pub fn reorder_and_dedup(&mut self) {
         self.tags.sort_by(|lhs, rhs| {
             if rhs.facet().has_date_like_suffix() {
                 if lhs.facet().has_date_like_suffix() {
