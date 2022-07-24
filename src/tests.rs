@@ -368,24 +368,28 @@ fn decode_and_reencode_tags_partially() {
 fn reorder_and_dedup1() {
     let mut decoded = DecodedTags::decode_str(
         " Arbitrary comments with\twhitespace  before the first\n valid gig tag\t #b @20220624#label
-            wishlist@20220625 #C @20220624#Label #A  wishlist@20220625\n
+            wishlist@20220625 #C @20220624#Label #A  wishlist@20220625 wishlist@20220625#By%20someone\n
             @20220626#Label non-data-like-facet#a non-data-like-facet#B @20220626#Label",
     );
+    assert_eq!(12, decoded.tags.len());
     decoded.reorder_and_dedup();
+    assert_eq!(10, decoded.tags.len());
     let mut reencoded = String::new();
     assert!(decoded.encode_into(&mut reencoded).is_ok());
-    assert_eq!(" Arbitrary comments with\twhitespace  before the first\n valid gig tag\t #A #C #b non-data-like-facet#B non-data-like-facet#a @20220626#Label wishlist@20220625 @20220624#Label @20220624#label", reencoded);
+    assert_eq!(" Arbitrary comments with\twhitespace  before the first\n valid gig tag\t #A #C #b non-data-like-facet#B non-data-like-facet#a @20220626#Label wishlist@20220625#By%20someone wishlist@20220625 @20220624#Label @20220624#label", reencoded);
 }
 
 #[test]
 fn reorder_and_dedup2() {
     let mut decoded = DecodedTags::decode_str(
         " Arbitrary comments with\twhitespace  before the first\n valid gig tag\t@20220624#Label
-            wishlist@20220625 #first_gigtag @20220624#Label   wishlist@20220625\n
-            @20220626#Label #first_gigtag @20220626#Label",
+            wishlist@20220625#By%20someone wishlist@20220625 #first_gigtag @20220624#Label
+            wishlist@20220625\n @20220626#Label #first_gigtag @20220626#Label",
     );
+    assert_eq!(9, decoded.tags.len());
     decoded.reorder_and_dedup();
+    assert_eq!(5, decoded.tags.len());
     let mut reencoded = String::new();
     assert!(decoded.encode_into(&mut reencoded).is_ok());
-    assert_eq!(" Arbitrary comments with\twhitespace  before the first\n valid gig tag\t#first_gigtag @20220626#Label wishlist@20220625 @20220624#Label", reencoded);
+    assert_eq!(" Arbitrary comments with\twhitespace  before the first\n valid gig tag\t#first_gigtag @20220626#Label wishlist@20220625#By%20someone wishlist@20220625 @20220624#Label", reencoded);
 }

@@ -464,7 +464,8 @@ where
     ///   2. Tags with a non-date-like facet
     ///   3. Tags with a date-like facet (by descending suffix)
     ///
-    /// Within each group tags are sorted by facet, then by label.
+    /// Within each group tags are sorted by facet, then by label. For tags with
+    /// equal facets those with a label are sorted before those without a label.
     ///
     /// Tags with a date-like facet are sorted in descending order by their
     /// date-like suffix, i.e. newer dates are sorted before older dates.
@@ -484,27 +485,41 @@ where
                         .try_split_into_prefix_and_date_like_suffix()
                         .unwrap();
                     // Descending order by decimal digits encoded as ASCII chars
-                    rhs_suffix
-                        .cmp(lhs_suffix)
-                        .then_with(|| lhs.facet().cmp(rhs.facet()))
-                        .then_with(|| lhs.label().cmp(rhs.label()))
+                    let ordering = rhs_suffix.cmp(lhs_suffix);
+                    if ordering != Ordering::Equal {
+                        return ordering;
+                    }
                 } else {
-                    Ordering::Less
+                    return Ordering::Less;
                 }
             } else if lhs.facet().has_date_like_suffix() {
-                Ordering::Greater
-            } else if rhs.has_facet() {
+                return Ordering::Greater;
+            }
+            if rhs.has_facet() {
                 if lhs.has_facet() {
-                    lhs.facet()
-                        .cmp(rhs.facet())
-                        .then_with(|| lhs.label().cmp(rhs.label()))
+                    let ordering = lhs.facet().cmp(rhs.facet());
+                    if ordering != Ordering::Equal {
+                        return ordering;
+                    }
                 } else {
-                    Ordering::Less
+                    return Ordering::Less;
                 }
             } else if lhs.has_facet() {
-                Ordering::Greater
+                return Ordering::Greater;
+            }
+            debug_assert_eq!(lhs.facet(), rhs.facet());
+            // Tags with labels before tags without labels
+            debug_assert_eq!(lhs.facet(), rhs.facet());
+            if rhs.has_label() {
+                if lhs.has_label() {
+                    lhs.label().cmp(rhs.label())
+                } else {
+                    Ordering::Greater
+                }
+            } else if lhs.has_label() {
+                Ordering::Less
             } else {
-                lhs.label().cmp(rhs.label())
+                Ordering::Equal
             }
         });
         self.tags.dedup();
