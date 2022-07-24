@@ -93,7 +93,7 @@ pub fn has_invalid_date_like_suffix(facet: &str) -> bool {
 }
 
 /// Common trait for facets
-pub trait Facet: AsRef<str> + Default + PartialEq + Ord + Sized {
+pub trait Facet: AsRef<str> + fmt::Debug + Default + PartialEq + Ord + Sized {
     /// Crate a facet from a borrowed string slice.
     #[must_use]
     fn from_str(facet: &str) -> Self {

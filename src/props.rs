@@ -3,7 +3,7 @@
 
 //! Named properties
 
-use std::{borrow::Cow, ops::Deref};
+use std::{borrow::Cow, fmt, ops::Deref};
 
 use compact_str::CompactString;
 
@@ -23,7 +23,7 @@ pub fn is_name_empty(name: &str) -> bool {
 }
 
 /// Common trait for names
-pub trait Name: AsRef<str> + Default + PartialEq + Sized {
+pub trait Name: AsRef<str> + fmt::Debug + Default + PartialEq + Sized {
     /// Crate a name from a borrowed string slice.
     ///
     /// The argument must be a valid name.
