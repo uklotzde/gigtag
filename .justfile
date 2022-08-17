@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: The gigtags authors
+# SPDX-FileCopyrightText: The gigtag authors
 # SPDX-License-Identifier: CC0-1.0
 
 # just manual: https://github.com/casey/just/#readme

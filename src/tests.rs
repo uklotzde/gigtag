@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: The gigtags authors
+// SPDX-FileCopyrightText: The gigtag authors
 // SPDX-License-Identifier: MPL-2.0
 
 #![allow(clippy::redundant_clone)]

@@ -1,13 +1,13 @@
-# SPDX-FileCopyrightText: The gigtags authors
+# SPDX-FileCopyrightText: The gigtag authors
 # SPDX-License-Identifier: MPL-2.0
 
 [package]
-name = "gigtags"
+name = "gigtag"
 description = "A lightweight, textual tagging system for DJs."
 version = "0.0.13"
 license = "MPL-2.0"
 readme = "README.md"
-repository = "https://github.com/uklotzde/gigtags"
+repository = "https://github.com/uklotzde/gigtag"
 keywords = ["music", "dj", "metadata", "tagging"]
 categories = ["parser-implementations"]
 edition = "2021"
