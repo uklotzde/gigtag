@@ -4,7 +4,7 @@
 [package]
 name = "gigtag"
 description = "A lightweight, textual tagging system for DJs."
-version = "0.1.0"
+version = "0.1.1"
 license = "MPL-2.0"
 readme = "README.md"
 repository = "https://github.com/uklotzde/gigtag"
@@ -14,7 +14,7 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0"
-compact_str = "0.5"
+compact_str = "0.6"
 itertools = "0.10"
 once_cell = "1.13"
 percent-encoding = "2.1"
