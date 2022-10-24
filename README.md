@@ -76,7 +76,7 @@ The following regular expressions could be used:
 
 |Regex|Description|
 |---|---|
-|`(^|[^\s])@\d{8}$`|Recognize date-like facets|
+|<code>(^&vert;[^\s])@\d{8}$</code>|Recognize date-like facets|
 |`[\s]+@\d{8}$`|Reject facets with a date-like suffix if preceded by whitespace|
 
 #### Valid examples
