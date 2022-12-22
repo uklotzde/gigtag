@@ -37,11 +37,12 @@ jobs:
 
       - name: Cache Rust toolchain and build artifacts
         uses: Swatinem/rust-cache@v2
+        with:
+          # Distinguished by the action name to avoid sharing across different actions!
+          shared-key: "pre-commit"
 
       - name: Generate Cargo.lock
-        uses: actions-rs/cargo@v1
-        with:
-          command: generate-lockfile
+        run: cargo generate-lockfile
 
       - name: Detect code style issues (push)
         uses: pre-commit/action@v3.0.0
