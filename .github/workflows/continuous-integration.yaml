@@ -33,14 +33,14 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v3
 
+      - name: Generate Cargo.lock
+        run: cargo generate-lockfile
+
       - name: Cache Rust toolchain and build artifacts
         uses: Swatinem/rust-cache@v2
         with:
           # Distinguished by the action name to avoid sharing across different actions!
           shared-key: "continuous-integration"
-
-      - name: Generate Cargo.lock
-        run: cargo generate-lockfile
 
       - name: Build tests
         run: cargo test --locked --all-targets --no-run
