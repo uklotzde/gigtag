@@ -303,9 +303,7 @@ where
             let query_encoded = query.as_bytes();
             for name_value_encoded in query_encoded.split(|b| *b == b'&') {
                 let mut name_value_encoded_split = name_value_encoded.split(|b| *b == b'=');
-                let name_encoded = if let Some(name_encoded) = name_value_encoded_split.next() {
-                    name_encoded
-                } else {
+                let Some(name_encoded) = name_value_encoded_split.next() else {
                     return Err(anyhow::anyhow!("missing property name").into());
                 };
                 let value_encoded = name_value_encoded_split.next().unwrap_or_default();
