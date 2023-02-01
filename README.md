@@ -35,11 +35,11 @@ Labels are supposed to be edited by users and are displayed verbatim in the UI.
 
 #### Examples
 
-|Label|Comment|
-|---|---|
-|`Wishlist`|a single word|
-|`FloorFiller`|multiple words concatenated in _PascalCase_|
-|`Floor Filler`|multiple words separated by whitespace|
+| Label          | Comment                                     |
+| -------------- | ------------------------------------------- |
+| `Wishlist`     | a single word                               |
+| `FloorFiller`  | multiple words concatenated in _PascalCase_ |
+| `Floor Filler` | multiple words separated by whitespace      |
 
 ### Facet
 
@@ -74,26 +74,26 @@ stripping the date-like suffix remains a valid facet.
 
 The following regular expressions could be used:
 
-|Regex|Description|
-|---|---|
-|<code>(^&vert;[^\s])@\d{8}$</code>|Recognize date-like facets|
-|`[\s]+@\d{8}$`|Reject facets with a date-like suffix if preceded by whitespace|
+| Regex                              | Description                                                     |
+| ---------------------------------- | --------------------------------------------------------------- |
+| <code>(^&vert;[^\s])@\d{8}$</code> | Recognize date-like facets                                      |
+| `[\s]+@\d{8}$`                     | Reject facets with a date-like suffix if preceded by whitespace |
 
 #### Valid examples
 
-|Facet|Description|
-|---|---|
-|`spotify`|a tag for encoding properties related to Spotify|
-|`@20220625`|date-like facet without a prefix that denotes the calendar day 2022-06-25 in any time zone|
-|`wishlist@20220625`|date-like facet with prefix `wishlist` that denotes the calendar day 2022-06-25 in any time zone|
-|`@00000000`|date-like facet without a prefix and an invalid date|
-|`abc xyz@99999999`|date-like facet with prefix `abc xyz` and an invalid date|
+| Facet               | Description                                                                                      |
+| ------------------- | ------------------------------------------------------------------------------------------------ |
+| `spotify`           | a tag for encoding properties related to Spotify                                                 |
+| `@20220625`         | date-like facet without a prefix that denotes the calendar day 2022-06-25 in any time zone       |
+| `wishlist@20220625` | date-like facet with prefix `wishlist` that denotes the calendar day 2022-06-25 in any time zone |
+| `@00000000`         | date-like facet without a prefix and an invalid date                                             |
+| `abc xyz@99999999`  | date-like facet with prefix `abc xyz` and an invalid date                                        |
 
 #### Invalid examples
 
-|Facet|Description|
-|---|---|
-|`played @20220625`|invalid date-like facet with a prefix containing trailing whitespace before the date-like suffix|
+| Facet              | Description                                                                                      |
+| ------------------ | ------------------------------------------------------------------------------------------------ |
+| `played @20220625` | invalid date-like facet with a prefix containing trailing whitespace before the date-like suffix |
 
 ### Prop(ertie)s
 
@@ -117,8 +117,7 @@ respective context. Facets could be used for defining this context.
 
 Individual tags are encoded as [URI](https://en.wikipedia.org/wiki/Uniform_Resource_Identifier#Syntax)s:
 
-> `URI       = scheme ":" ["//" authority] path ["?" query] ["#" fragment]`
-> `authority = [userinfo "@"] host [":" port]`
+> `URI       = scheme ":" ["//" authority] path ["?" query] ["#" fragment]` > `authority = [userinfo "@"] host [":" port]`
 
 Only the _path_, _query_, and _fragment_ components could be present.
 All other components must be absent, i.e. the URI string must neither
@@ -126,11 +125,11 @@ contain a _scheme_ nor an _authority_ component.
 
 The following table defines the component mapping:
 
-|Tag component|URI component|Percent-encoded character set|
-|---|---|---|
-|label|[fragment](https://en.wikipedia.org/wiki/URI_fragment)|[_fragment percent-encode set_](https://url.spec.whatwg.org/#fragment-percent-encode-set) + `'%'`
-|facet|path|[_path percent-encode set_](https://url.spec.whatwg.org/#path-percent-encode-set) + `'%'`
-|props (name/value)|[query](https://en.wikipedia.org/wiki/Query_string)|[_query percent-encode set_](https://url.spec.whatwg.org/#query-percent-encode-set) + `'%'` + `'&'` + `'='`
+| Tag component      | URI component                                          | Percent-encoded character set                                                                               |
+| ------------------ | ------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
+| label              | [fragment](https://en.wikipedia.org/wiki/URI_fragment) | [_fragment percent-encode set_](https://url.spec.whatwg.org/#fragment-percent-encode-set) + `'%'`           |
+| facet              | path                                                   | [_path percent-encode set_](https://url.spec.whatwg.org/#path-percent-encode-set) + `'%'`                   |
+| props (name/value) | [query](https://en.wikipedia.org/wiki/Query_string)    | [_query percent-encode set_](https://url.spec.whatwg.org/#query-percent-encode-set) + `'%'` + `'&'` + `'='` |
 
 Tags, respective their URIs, are serialized as text and the
 components are [percent-encoded](https://en.wikipedia.org/wiki/Percent-encoding)
@@ -146,28 +145,28 @@ from an URI string.
 The following examples show variations of the encoded string with empty components
 that are ignored when decoding the URI.
 
-|Encoded|Facet|Date|Label|Props: Names|Props: Values
-|---|---|---|---|---|---|
-|`#MyTag`<br>`?#MyTag`|||`MyTag`|
-|`wishlist@20220625#For%20you`|`wishlist@20220625`|2022-06-25|`For you`|
-|`played@20220625`<br>`played@20220625?`<br>`played20220625#`<br>`played@20220625?#`|`played@20220625`|2022-06-25|
-|`audio-features?energy=0.78&valence=0.61`<br>`audio-features?energy=0.78&valence=0.61#`|`audio-features`|||`energy`<br>`valence`|`0.78`<br>`0.61`|
+| Encoded                                                                                 | Facet               | Date       | Label     | Props: Names          | Props: Values    |
+| --------------------------------------------------------------------------------------- | ------------------- | ---------- | --------- | --------------------- | ---------------- |
+| `#MyTag`<br>`?#MyTag`                                                                   |                     |            | `MyTag`   |
+| `wishlist@20220625#For%20you`                                                           | `wishlist@20220625` | 2022-06-25 | `For you` |
+| `played@20220625`<br>`played@20220625?`<br>`played20220625#`<br>`played@20220625?#`     | `played@20220625`   | 2022-06-25 |
+| `audio-features?energy=0.78&valence=0.61`<br>`audio-features?energy=0.78&valence=0.61#` | `audio-features`    |            |           | `energy`<br>`valence` | `0.78`<br>`0.61` |
 
 #### Examples (invalid)
 
 The following tokens do not represent valid _gig tags_:
 
-|Encoded|Comment|
-|---|---|
-|`https://#MyTag`|URL scheme/authority are present|
-|`My%20Tag`|Only a facet without a date, neither a label nor props|
-|`/my-facet#Label`|Facet starts with a `/`|
-|`wishlist%20@20220625#Label`|Date suffix in facet is prefixed by whitespace|
-|`?=val#Label`|Empty property name|
-|`?name=my+val#My label`|Special characters like `+` and whitespace are not percent-encoded|
-|`#`|Empty label is considered as absent|
-|`?`|Empty facet and props are considered as absent|
-|`?#`|Empty facet, props, and label are considered as absent|
+| Encoded                      | Comment                                                            |
+| ---------------------------- | ------------------------------------------------------------------ |
+| `https://#MyTag`             | URL scheme/authority are present                                   |
+| `My%20Tag`                   | Only a facet without a date, neither a label nor props             |
+| `/my-facet#Label`            | Facet starts with a `/`                                            |
+| `wishlist%20@20220625#Label` | Date suffix in facet is prefixed by whitespace                     |
+| `?=val#Label`                | Empty property name                                                |
+| `?name=my+val#My label`      | Special characters like `+` and whitespace are not percent-encoded |
+| `#`                          | Empty label is considered as absent                                |
+| `?`                          | Empty facet and props are considered as absent                     |
+| `?#`                         | Empty facet, props, and label are considered as absent             |
 
 ### Multiple tags
 

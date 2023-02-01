@@ -47,7 +47,7 @@ repos:
     rev: v3.0.0-alpha.4
     hooks:
       - id: prettier
-        types:
+        types_or:
           - markdown
           - yaml
   # https://reuse.software
