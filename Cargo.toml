@@ -11,16 +11,17 @@ repository = "https://github.com/uklotzde/gigtag"
 keywords = ["music", "dj", "metadata", "tagging"]
 categories = ["parser-implementations"]
 edition = "2021"
+include = ["/src", "/README.md", "/LICENSES"]
 
 [dependencies]
-anyhow = "1.0.69"
+anyhow = "1.0.70"
 compact_str = "0.7.0"
 itertools = "0.10.5"
 once_cell = "1.17.1"
 percent-encoding = "2.2.0"
 regex = "1.7.1"
-time = { version = "0.3.19", features = ["formatting", "macros", "parsing"] }
-thiserror = "1.0.38"
+time = { version = "0.3.20", features = ["formatting", "macros", "parsing"] }
+thiserror = "1.0.40"
 url = "2.3.1"
 
 [features]
