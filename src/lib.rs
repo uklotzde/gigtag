@@ -26,9 +26,9 @@ use std::{
     cmp::Ordering,
     fmt,
     str::{FromStr, Utf8Error},
+    sync::OnceLock,
 };
 
-use once_cell::sync::OnceCell;
 use percent_encoding::{percent_decode, percent_encode};
 use thiserror::Error;
 use url::Url;
@@ -228,7 +228,7 @@ impl From<url::ParseError> for DecodeError {
     }
 }
 
-static DUMMY_BASE_URL_WITH_ABSOLUTE_PATH: OnceCell<Url> = OnceCell::new();
+static DUMMY_BASE_URL_WITH_ABSOLUTE_PATH: OnceLock<Url> = OnceLock::new();
 
 fn dummy_base_url() -> &'static Url {
     DUMMY_BASE_URL_WITH_ABSOLUTE_PATH.get_or_init(|| {

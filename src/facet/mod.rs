@@ -3,10 +3,9 @@
 
 //! Facets
 
-use std::{borrow::Cow, fmt, ops::Deref};
+use std::{borrow::Cow, fmt, ops::Deref, sync::OnceLock};
 
 use compact_str::{format_compact, CompactString};
-use once_cell::sync::OnceCell;
 use regex::bytes::Regex;
 use time::{format_description::FormatItem, macros::format_description, Date};
 
@@ -64,7 +63,7 @@ const DATE_LIKE_SUFFIX_LEN: usize = 1 + 8;
 
 const DATE_LIKE_SUFFIX_REGEX_STR: &str = r"(^|[^\s])@\d{8}$";
 
-static DATE_LIKE_SUFFIX_REGEX: OnceCell<Regex> = OnceCell::new();
+static DATE_LIKE_SUFFIX_REGEX: OnceLock<Regex> = OnceLock::new();
 
 #[must_use]
 fn date_like_suffix_regex() -> &'static Regex {
@@ -76,7 +75,7 @@ fn date_like_suffix_regex() -> &'static Regex {
 
 const INVALID_DATE_LIKE_SUFFIX_REGEX_STR: &str = r"[\s]+@\d{8}$";
 
-static INVALID_DATE_LIKE_SUFFIX_REGEX: OnceCell<Regex> = OnceCell::new();
+static INVALID_DATE_LIKE_SUFFIX_REGEX: OnceLock<Regex> = OnceLock::new();
 
 #[must_use]
 fn invalid_date_like_suffix_regex() -> &'static Regex {
