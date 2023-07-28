@@ -13,13 +13,13 @@ on:
   push:
     branches:
       - "*"
+  workflow_dispatch:
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
   pre-commit:
-    name: Detecting code style issues
     runs-on: ubuntu-latest
     steps:
       - name: Setup Python
@@ -39,15 +39,8 @@ jobs:
       - name: Cache Rust toolchain and build artifacts
         uses: Swatinem/rust-cache@v2
         with:
-          # Distinguished by the action name to avoid sharing across different actions!
-          shared-key: "pre-commit"
+          # Distinguished by the action name to avoid sharing between different actions.
+          shared-key: pre-commit
 
-      - name: Detect code style issues (push)
+      - name: Detect code style issues
         uses: pre-commit/action@v3.0.0
-        if: github.event_name == 'push'
-
-      - name: Detect code style issues (pull_request)
-        uses: pre-commit/action@v3.0.0
-        if: github.event_name == 'pull_request'
-        env:
-          SKIP: no-commit-to-branch
