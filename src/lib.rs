@@ -7,8 +7,11 @@
 #![warn(missing_docs)]
 #![warn(unreachable_pub)]
 #![warn(unsafe_code)]
-#![warn(clippy::pedantic)]
 #![warn(rustdoc::broken_intra_doc_links)]
+#![warn(clippy::pedantic)]
+// Additional restrictions
+#![warn(clippy::clone_on_ref_ptr)]
+#![warn(clippy::self_named_module_files)]
 
 //! A lightweight, textual tagging system aimed at DJs for managing custom metadata.
 //!
