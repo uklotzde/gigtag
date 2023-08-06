@@ -14,8 +14,7 @@ A lightweight, textual tagging system aimed at DJs for managing custom metadata.
 
 ## Structure
 
-A _gig tag_ is a flat structure with the following, pre-defined fields or
-components:
+A _gig tag_ is a flat structure with the following, pre-defined fields or components:
 
 - Label
 - Facet (including an optional calendar date)
@@ -24,13 +23,12 @@ components:
 All components are optional with the following restrictions:
 
 - A valid _gig tag_ must have a _label_ or a _facet_.
-- A valid _gig tag_ with only a facet and neither a label or props is valid, if
-  the facet has a date suffix
+- A valid _gig tag_ with only a facet and neither a label or props is valid, if the facet has a date
+  suffix
 
 ### Label
 
-A _label_ is a non-empty string that contains arbitrary text without
-leading/trailing whitespace.
+A _label_ is a non-empty string that contains arbitrary text without leading/trailing whitespace.
 
 Labels are supposed to be edited by users and are displayed verbatim in the UI.
 
@@ -44,32 +42,30 @@ Labels are supposed to be edited by users and are displayed verbatim in the UI.
 
 ### Facet
 
-The same content rules that apply to _labels_ also apply to _facets_. Moreover
-facets must not start with a leading slash `/` character that would otherwise
-interfere with the serialization format (see below).
+The same content rules that apply to _labels_ also apply to _facets_. Moreover facets must not start
+with a leading slash `/` character that would otherwise interfere with the serialization format (see
+below).
 
-Facets serve a different semantic purpose than labels. They are used for
-categorizing, namespacing or grouping a set of labels or for defining the
-context of associated properties.
+Facets serve a different semantic purpose than labels. They are used for categorizing, namespacing
+or grouping a set of labels or for defining the context of associated properties.
 
-Facets are supposed to represent pre-defined identifiers that are neither
-editable nor directly displayed in the UI.
+Facets are supposed to represent pre-defined identifiers that are neither editable nor directly
+displayed in the UI.
 
 #### Date-like facets
 
 A reserved suffix could be used to encode a calendar date into facets.
 
-Facets that end with a `@` character followed by 8 decimal digits are considered
-as _date-like facets_. The digits are supposed to encode an ISO 8601 calendar
-date without a time zone in the format `yyyyMMdd`.
+Facets that end with a `@` character followed by 8 decimal digits are considered as _date-like
+facets_. The digits are supposed to encode an ISO 8601 calendar date without a time zone in the
+format `yyyyMMdd`.
 
-Facets considered as _date-like_ even if the 8 decimal digits do not encode a
-valid date. This less restrictive constraints have been chosen deliberately to
-allow using regular expressions for recognizing date-like facets.
+Facets considered as _date-like_ even if the 8 decimal digits do not encode a valid date. This less
+restrictive constraints have been chosen deliberately to allow using regular expressions for
+recognizing date-like facets.
 
-The `@` character of the date suffix must follow the preceding text without any
-intermediate whitespace. Thus the remaining prefix after stripping the date-like
-suffix remains a valid facet.
+The `@` character of the date suffix must follow the preceding text without any intermediate
+whitespace. Thus the remaining prefix after stripping the date-like suffix remains a valid facet.
 
 The following regular expressions could be used:
 
@@ -100,15 +96,13 @@ Custom _properties_ could be attached to tags, abbreviated as _props_.
 
 Properties are represented as a non-empty, ordered _list_ of name/value pairs.
 
-_Names_ are non-empty strings that contain arbitrary text without
-leading/trailing whitespace. There are no restrictions regarding the uniqueness
-of names, i.e. duplicate names are permitted.
+_Names_ are non-empty strings that contain arbitrary text without leading/trailing whitespace. There
+are no restrictions regarding the uniqueness of names, i.e. duplicate names are permitted.
 
-_Values_ are arbitrary strings without any restrictions. Empty values are
-permitted.
+_Values_ are arbitrary strings without any restrictions. Empty values are permitted.
 
-Applications are responsible for interpreting the names and values in their
-respective context. Facets could be used for defining this context.
+Applications are responsible for interpreting the names and values in their respective context.
+Facets could be used for defining this context.
 
 ## Serialization
 
@@ -120,9 +114,8 @@ Individual tags are encoded as
 > `URI       = scheme ":" ["//" authority] path ["?" query] ["#" fragment]` >
 > `authority = [userinfo "@"] host [":" port]`
 
-Only the _path_, _query_, and _fragment_ components could be present. All other
-components must be absent, i.e. the URI string must neither contain a _scheme_
-nor an _authority_ component.
+Only the _path_, _query_, and _fragment_ components could be present. All other components must be
+absent, i.e. the URI string must neither contain a _scheme_ nor an _authority_ component.
 
 The following table defines the component mapping:
 
@@ -133,17 +126,16 @@ The following table defines the component mapping:
 | props (name/value) | [query](https://en.wikipedia.org/wiki/Query_string)    | [_query percent-encode set_](https://url.spec.whatwg.org/#query-percent-encode-set) + `'%'` + `'&'` + `'='` |
 
 Tags, respective their URIs, are serialized as text and the components are
-[percent-encoded](https://en.wikipedia.org/wiki/Percent-encoding) according to
-RFC 2396/1738. The above table specifies which characters need to be encoded for
-each tag component. Property names/values are encoded separately.
+[percent-encoded](https://en.wikipedia.org/wiki/Percent-encoding) according to RFC 2396/1738. The
+above table specifies which characters need to be encoded for each tag component. Property
+names/values are encoded separately.
 
-Empty components are considered as absent when parsing a _gig tag_ from an URI
-string.
+Empty components are considered as absent when parsing a _gig tag_ from an URI string.
 
 #### Examples
 
-The following examples show variations of the encoded string with empty
-components that are ignored when decoding the URI.
+The following examples show variations of the encoded string with empty components that are ignored
+when decoding the URI.
 
 | Encoded                                                                                 | Facet               | Date       | Label     | Props: Names          | Props: Values    |
 | --------------------------------------------------------------------------------------- | ------------------- | ---------- | --------- | --------------------- | ---------------- |
@@ -172,41 +164,38 @@ The following tokens do not represent valid _gig tags_:
 
 #### Formatting
 
-Multiple tags are formatted and stored as text by concatenating the
-corresponding, encoded URIs. Subsequent URIs are separated by whitespace, e.g. a
-single ASCII space character.
+Multiple tags are formatted and stored as text by concatenating the corresponding, encoded URIs.
+Subsequent URIs are separated by whitespace, e.g. a single ASCII space character.
 
 ##### Retro-fitting
 
-Often it is not possible to store the encoded _gig tags_ in a reserved field. In
-this case _gig tags_ could appended to any text field by separating them with
-arbitrary whitespace from the preceding text.
+Often it is not possible to store the encoded _gig tags_ in a reserved field. In this case _gig
+tags_ could appended to any text field by separating them with arbitrary whitespace from the
+preceding text.
 
 #### Parsing
 
-Text is split into tokens that are separated by whitespace. Parsing starts with
-the last token and continues from back to front. It stops when encountering a
-token that could not be parsed as a valid _gig tag_.
+Text is split into tokens that are separated by whitespace. Parsing starts with the last token and
+continues from back to front. It stops when encountering a token that could not be parsed as a valid
+_gig tag_.
 
 ##### Retro-fitting
 
-The first token that could not be parsed as a valid _gig tag_ is considered the
-last token of the preceding text. The preceding text including this token and
-the whitespace until the first valid _gig tag_ token must be preserved as an
-_undecoded prefix_.
+The first token that could not be parsed as a valid _gig tag_ is considered the last token of the
+preceding text. The preceding text including this token and the whitespace until the first valid
+_gig tag_ token must be preserved as an _undecoded prefix_.
 
-When re-encoding the _gig tags_ the _undecoded prefix_ that was captured during
-parsing must be prepended to the re-encoded _gig tags_ string. This rule ensures
-that only whitespace characters could get lost during a decode/re-encode
-roundtrip, i.e. when unintentionally parsing arbitrary words from the preceding
-text as valid _gig tags_ (false positives).
+When re-encoding the _gig tags_ the _undecoded prefix_ that was captured during parsing must be
+prepended to the re-encoded _gig tags_ string. This rule ensures that only whitespace characters
+could get lost during a decode/re-encode roundtrip, i.e. when unintentionally parsing arbitrary
+words from the preceding text as valid _gig tags_ (false positives).
 
 ## Storage
 
 ### File metadata
 
-The text with the encoded _gig tags_ is appended (separated by whitespace) to
-the _Content Group_ field of audio files:
+The text with the encoded _gig tags_ is appended (separated by whitespace) to the _Content Group_
+field of audio files:
 
 - ID3v2: `GRP1` (primary/preferred) / `TIT11` (traditional/fallback)
 - Vorbis: `GROUPING`
@@ -214,20 +203,19 @@ the _Content Group_ field of audio files:
 
 ## License
 
-Licensed under the Mozilla Public License 2.0 (MPL-2.0) (see
-[MPL-2.0.txt](LICENSES/MPL-2.0.txt) or <https://www.mozilla.org/MPL/2.0/>).
+Licensed under the Mozilla Public License 2.0 (MPL-2.0) (see [MPL-2.0.txt](LICENSES/MPL-2.0.txt) or
+<https://www.mozilla.org/MPL/2.0/>).
 
-Permissions of this copyleft license are conditioned on making available source
-code of licensed files and modifications of those files under the same license
-(or in certain cases, one of the GNU licenses). Copyright and license notices
-must be preserved. Contributors provide an express grant of patent rights.
-However, a larger work using the licensed work may be distributed under
-different terms and without source code for files added in the larger work.
+Permissions of this copyleft license are conditioned on making available source code of licensed
+files and modifications of those files under the same license (or in certain cases, one of the GNU
+licenses). Copyright and license notices must be preserved. Contributors provide an express grant of
+patent rights. However, a larger work using the licensed work may be distributed under different
+terms and without source code for files added in the larger work.
 
 ### Contribution
 
-Any contribution intentionally submitted for inclusion in the work by you shall
-be licensed under the Mozilla Public License 2.0 (MPL-2.0).
+Any contribution intentionally submitted for inclusion in the work by you shall be licensed under
+the Mozilla Public License 2.0 (MPL-2.0).
 
 It is required to add the following header with the corresponding
 [SPDX short identifier](https://spdx.dev/ids/) to the top of each file:

@@ -21,7 +21,7 @@ env:
   RUST_BACKTRACE: short
 
 jobs:
-  build-and-test:
+  run:
     runs-on: ubuntu-latest
 
     steps:
@@ -37,11 +37,12 @@ jobs:
       - name: Cache Rust toolchain and build artifacts
         uses: Swatinem/rust-cache@v2
         with:
-          # Distinguished by the action name to avoid sharing between different actions.
-          shared-key: build-and-test
+          # The cache should not be shared between different workflows and jobs.
+          # Two jobs might share the same default target but have different build targets.
+          shared-key: ${{ github.workflow }}-${{ github.job }}-${{ matrix.target }}
 
       - name: Build tests
-        run: cargo test --locked --all-targets --all-features --no-run
+        run: cargo test --locked --all-features --no-run
 
       - name: Run tests
-        run: cargo test --locked --all-targets --all-features -- --nocapture --quiet
+        run: cargo test --locked --all-features -- --nocapture --quiet
