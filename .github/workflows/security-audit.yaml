@@ -32,8 +32,7 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           # The cache should not be shared between different workflows and jobs.
-          # Two jobs might share the same default target but have different build targets.
-          shared-key: ${{ github.workflow }}-${{ github.job }}-${{ matrix.target }}
+          shared-key: ${{ github.workflow }}-${{ github.job }}
 
       - name: Run security audit
         run: cargo audit --deny unsound --deny yanked
