@@ -252,7 +252,7 @@ where
 
     /// Return the value.
     #[must_use]
-    pub fn value(&self) -> &V {
+    pub const fn value(&self) -> &V {
         &self.value
     }
 
