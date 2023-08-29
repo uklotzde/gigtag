@@ -3,7 +3,8 @@
 
 # yaml-language-server: $schema=https://json.schemastore.org/github-workflow
 
-name: build-and-test
+# Same as file name
+name: test
 
 permissions:
   contents: read
@@ -40,8 +41,5 @@ jobs:
           # The cache should not be shared between different workflows and jobs.
           shared-key: ${{ github.workflow }}-${{ github.job }}
 
-      - name: Build tests
-        run: cargo test --locked --all-features --no-run
-
       - name: Run tests
-        run: cargo test --locked --all-features -- --nocapture --quiet
+        run: cargo test --locked --all-features
