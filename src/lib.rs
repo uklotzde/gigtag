@@ -1,19 +1,6 @@
 // SPDX-FileCopyrightText: The gigtag authors
 // SPDX-License-Identifier: MPL-2.0
 
-#![warn(rust_2018_idioms)]
-#![warn(rust_2021_compatibility)]
-#![warn(missing_debug_implementations)]
-#![warn(missing_docs)]
-#![warn(unreachable_pub)]
-#![warn(unsafe_code)]
-#![warn(rustdoc::broken_intra_doc_links)]
-#![warn(clippy::pedantic)]
-// Additional restrictions
-#![warn(clippy::clone_on_ref_ptr)]
-#![warn(clippy::missing_const_for_fn)]
-#![warn(clippy::self_named_module_files)]
-
 //! A lightweight, textual tagging system aimed at DJs for managing custom metadata.
 //!
 //! Refer to [`docs`] for more information about the idea and the specification.
