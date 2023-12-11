@@ -18,11 +18,11 @@ rust-version = "1.74"
 anyhow = "1.0.75"
 compact_str = "0.7.1"
 itertools = "0.12.0"
-percent-encoding = "2.3.0"
+percent-encoding = "2.3.1"
 regex = "1.10.2"
 time = { version = "0.3.30", features = ["formatting", "macros", "parsing"] }
 thiserror = "1.0.50"
-url = "2.4.1"
+url = "2.5.0"
 
 [features]
 default = []
