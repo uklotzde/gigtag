@@ -139,9 +139,9 @@ when decoding the URI.
 
 | Encoded                                                                                 | Facet               | Date       | Label     | Props: Names          | Props: Values    |
 | --------------------------------------------------------------------------------------- | ------------------- | ---------- | --------- | --------------------- | ---------------- |
-| `#MyTag`<br>`?#MyTag`                                                                   |                     |            | `MyTag`   |
-| `wishlist@20220625#For%20you`                                                           | `wishlist@20220625` | 2022-06-25 | `For you` |
-| `played@20220625`<br>`played@20220625?`<br>`played20220625#`<br>`played@20220625?#`     | `played@20220625`   | 2022-06-25 |
+| `#MyTag`<br>`?#MyTag`                                                                   |                     |            | `MyTag`   |                       |                  |
+| `wishlist@20220625#For%20you`                                                           | `wishlist@20220625` | 2022-06-25 | `For you` |                       |                  |
+| `played@20220625`<br>`played@20220625?`<br>`played20220625#`<br>`played@20220625?#`     | `played@20220625`   | 2022-06-25 |           |                       |                  |
 | `audio-features?energy=0.78&valence=0.61`<br>`audio-features?energy=0.78&valence=0.61#` | `audio-features`    |            |           | `energy`<br>`valence` | `0.78`<br>`0.61` |
 
 #### Examples (invalid)
