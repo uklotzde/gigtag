@@ -52,11 +52,11 @@ pub fn try_split_into_prefix_and_date_like_suffix(facet: &str) -> Option<(&str, 
 pub fn try_split_into_prefix_and_parse_date_suffix(facet: &str) -> Option<(&str, Option<Date>)> {
     debug_assert!(is_valid(facet));
     let (prefix, date_suffix) = try_split_into_prefix_and_date_like_suffix(facet)?;
-    let date = Date::parse(date_suffix, DATE_SUFFIX_FORMAT).ok();
+    let date = Date::parse(date_suffix, DATE_LIKE_SUFFIX_FORMAT).ok();
     (prefix, date).into()
 }
 
-const DATE_SUFFIX_FORMAT: &[FormatItem<'static>] = format_description!("@[year][month][day]");
+const DATE_LIKE_SUFFIX_FORMAT: &[FormatItem<'static>] = format_description!("@[year][month][day]");
 
 // @yyyyMMdd
 const DATE_LIKE_SUFFIX_LEN: usize = 1 + 8;
@@ -91,6 +91,12 @@ pub fn has_invalid_date_like_suffix(facet: &str) -> bool {
     invalid_date_like_suffix_regex().is_match(facet.as_bytes())
 }
 
+fn format_date_like_suffix(date: Date) -> Result<String, time::error::Format> {
+    // Use a `CompactString` for formatting the date-like suffix
+    // to avoid allocating a (probably temporary) `String`.
+    date.format(DATE_LIKE_SUFFIX_FORMAT)
+}
+
 /// Common trait for facets
 pub trait Facet: AsRef<str> + fmt::Debug + Default + PartialEq + Ord + Sized {
     /// Create a facet from a borrowed string slice.
@@ -122,7 +128,7 @@ pub trait Facet: AsRef<str> + fmt::Debug + Default + PartialEq + Ord + Sized {
     ///
     /// Returns an error if formatting of the given `date` fails.
     fn from_prefix_with_date_suffix(prefix: &str, date: Date) -> Result<Self, time::error::Format> {
-        let suffix = date.format(DATE_SUFFIX_FORMAT)?;
+        let suffix = format_date_like_suffix(date)?;
         Ok(Self::from_format_args(format_args!("{prefix}{suffix}")))
     }
 
@@ -138,7 +144,7 @@ pub trait Facet: AsRef<str> + fmt::Debug + Default + PartialEq + Ord + Sized {
         prefix_args: fmt::Arguments<'_>,
         date: Date,
     ) -> Result<Self, time::error::Format> {
-        let suffix = date.format(DATE_SUFFIX_FORMAT)?;
+        let suffix = format_date_like_suffix(date)?;
         Ok(Self::from_format_args(format_args!(
             "{prefix_args}{suffix}"
         )))
@@ -235,7 +241,7 @@ impl Facet for CompactFacet {
     }
 }
 
-/// Facet with a full-blown `String` representation
+/// Facet with a full-blown [`String`] representation
 #[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[allow(clippy::module_name_repetitions)]
 pub struct StdFacet(String);
