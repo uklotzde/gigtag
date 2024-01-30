@@ -93,19 +93,19 @@ pub fn has_invalid_date_like_suffix(facet: &str) -> bool {
 
 /// Common trait for facets
 pub trait Facet: AsRef<str> + fmt::Debug + Default + PartialEq + Ord + Sized {
-    /// Crate a facet from a borrowed string slice.
+    /// Create a facet from a borrowed string slice.
     #[must_use]
     fn from_str(facet: &str) -> Self {
         Self::from_cow_str(facet.into())
     }
 
-    /// Crate a facet from an owned string.
+    /// Create a facet from an owned string.
     #[must_use]
     fn from_string(facet: String) -> Self {
         Self::from_cow_str(facet.into())
     }
 
-    /// Crate a facet from a copy-on-write string.
+    /// Create a facet from a copy-on-write string.
     #[must_use]
     fn from_cow_str(facet: Cow<'_, str>) -> Self;
 

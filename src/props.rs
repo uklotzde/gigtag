@@ -24,7 +24,7 @@ pub fn is_name_empty(name: &str) -> bool {
 
 /// Common trait for names
 pub trait Name: AsRef<str> + fmt::Debug + Default + PartialEq + Sized {
-    /// Crate a name from a borrowed string slice.
+    /// Create a name from a borrowed string slice.
     ///
     /// The argument must be a valid name.
     #[must_use]
@@ -32,7 +32,7 @@ pub trait Name: AsRef<str> + fmt::Debug + Default + PartialEq + Sized {
         Self::from_cow_str(name.into())
     }
 
-    /// Crate a name from a owned string.
+    /// Create a name from a owned string.
     ///
     /// The argument must be a valid name.
     #[must_use]
@@ -40,7 +40,7 @@ pub trait Name: AsRef<str> + fmt::Debug + Default + PartialEq + Sized {
         Self::from_cow_str(name.into())
     }
 
-    /// Crate a name from a copy-on-write string.
+    /// Create a name from a copy-on-write string.
     ///
     /// The argument must be a valid name.
     #[must_use]
@@ -172,7 +172,7 @@ impl Name for StdName {
 
 /// Common trait for values
 pub trait Value: AsRef<str> + Default + PartialEq + Sized {
-    /// Crate a value from a borrowed string slice.
+    /// Create a value from a borrowed string slice.
     ///
     /// The argument must be a valid value.
     #[must_use]
@@ -180,7 +180,7 @@ pub trait Value: AsRef<str> + Default + PartialEq + Sized {
         Self::from_cow_str(value.into())
     }
 
-    /// Crate a value from a owned string.
+    /// Create a value from a owned string.
     ///
     /// The argument must be a valid value.
     #[must_use]
@@ -188,7 +188,7 @@ pub trait Value: AsRef<str> + Default + PartialEq + Sized {
         Self::from_cow_str(value.into())
     }
 
-    /// Crate a value from a copy-on-write string.
+    /// Create a value from a copy-on-write string.
     ///
     /// The argument must be a valid value.
     #[must_use]

@@ -24,7 +24,7 @@ pub fn is_empty(label: &str) -> bool {
 
 /// Common trait for labels
 pub trait Label: AsRef<str> + fmt::Debug + Default + PartialEq + Ord + Sized {
-    /// Crate a label from a borrowed string slice.
+    /// Create a label from a borrowed string slice.
     ///
     /// The argument must be a valid label.
     #[must_use]
@@ -32,7 +32,7 @@ pub trait Label: AsRef<str> + fmt::Debug + Default + PartialEq + Ord + Sized {
         Self::from_cow_str(label.into())
     }
 
-    /// Crate a label from a owned string.
+    /// Create a label from a owned string.
     ///
     /// The argument must be a valid label.
     #[must_use]
@@ -40,7 +40,7 @@ pub trait Label: AsRef<str> + fmt::Debug + Default + PartialEq + Ord + Sized {
         Self::from_cow_str(label.into())
     }
 
-    /// Crate a label from a copy-on-write string.
+    /// Create a label from a copy-on-write string.
     ///
     /// The argument must be a valid label.
     #[must_use]
