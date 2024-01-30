@@ -5,7 +5,7 @@
 
 use std::{borrow::Cow, fmt, ops::Deref, sync::OnceLock};
 
-use compact_str::{format_compact, CompactString};
+use compact_str::{format_compact, CompactString, ToCompactString as _};
 use regex::bytes::Regex;
 use time::{format_description::FormatItem, macros::format_description, Date};
 
@@ -109,6 +109,10 @@ pub trait Facet: AsRef<str> + fmt::Debug + Default + PartialEq + Ord + Sized {
     #[must_use]
     fn from_cow_str(facet: Cow<'_, str>) -> Self;
 
+    /// Create a facet from a precompiled format string.
+    #[must_use]
+    fn from_format_args(format_args: fmt::Arguments<'_>) -> Self;
+
     /// Concatenate a prefix and [`Date`] suffix to a facet.
     ///
     /// The prefix string must not end with trailing whitespace,
@@ -119,7 +123,7 @@ pub trait Facet: AsRef<str> + fmt::Debug + Default + PartialEq + Ord + Sized {
     /// Returns an error if formatting of the given `date` fails.
     fn from_prefix_with_date_suffix(prefix: &str, date: Date) -> Result<Self, time::error::Format> {
         let suffix = date.format(DATE_SUFFIX_FORMAT)?;
-        Ok(Self::from_string(format!("{prefix}{suffix}")))
+        Ok(Self::from_format_args(format_args!("{prefix}{suffix}")))
     }
 
     /// Concatenate a prefix and [`Date`] suffix to a facet.
@@ -135,7 +139,9 @@ pub trait Facet: AsRef<str> + fmt::Debug + Default + PartialEq + Ord + Sized {
         date: Date,
     ) -> Result<Self, time::error::Format> {
         let suffix = date.format(DATE_SUFFIX_FORMAT)?;
-        Ok(Self::from_string(format!("{prefix_args}{suffix}")))
+        Ok(Self::from_format_args(format_args!(
+            "{prefix_args}{suffix}"
+        )))
     }
 
     /// [`is_valid()`]
@@ -169,7 +175,7 @@ pub trait Facet: AsRef<str> + fmt::Debug + Default + PartialEq + Ord + Sized {
     }
 }
 
-/// Facet with a `CompactString` representation
+/// Facet with a [`CompactString`] representation
 #[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[allow(clippy::module_name_repetitions)]
 pub struct CompactFacet(CompactString);
@@ -222,6 +228,10 @@ impl Facet for CompactFacet {
 
     fn from_cow_str(facet: Cow<'_, str>) -> Self {
         Self(facet.into())
+    }
+
+    fn from_format_args(format_args: fmt::Arguments<'_>) -> Self {
+        Self(format_args.to_compact_string())
     }
 
     fn from_prefix_with_date_suffix(prefix: &str, date: Date) -> Result<Self, time::error::Format> {
@@ -291,6 +301,10 @@ impl Facet for StdFacet {
 
     fn from_cow_str(facet: Cow<'_, str>) -> Self {
         Self(facet.into())
+    }
+
+    fn from_format_args(format_args: fmt::Arguments<'_>) -> Self {
+        Self(format_args.to_string())
     }
 }
 

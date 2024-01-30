@@ -5,7 +5,7 @@
 
 use std::{borrow::Cow, fmt, ops::Deref};
 
-use compact_str::CompactString;
+use compact_str::{CompactString, ToCompactString as _};
 
 /// Check if the given name is valid.
 ///
@@ -45,6 +45,10 @@ pub trait Name: AsRef<str> + fmt::Debug + Default + PartialEq + Sized {
     /// The argument must be a valid name.
     #[must_use]
     fn from_cow_str(name: Cow<'_, str>) -> Self;
+
+    /// Create a name from a precompiled format string.
+    #[must_use]
+    fn from_format_args(format_args: fmt::Arguments<'_>) -> Self;
 
     /// [`is_name_valid()`]
     #[must_use]
@@ -112,6 +116,10 @@ impl Name for CompactName {
     fn from_cow_str(name: Cow<'_, str>) -> Self {
         Self(name.into())
     }
+
+    fn from_format_args(format_args: fmt::Arguments<'_>) -> Self {
+        Self(format_args.to_compact_string())
+    }
 }
 
 /// Name with a full-blown `String` representation
@@ -168,6 +176,10 @@ impl Name for StdName {
     fn from_cow_str(name: Cow<'_, str>) -> Self {
         Self(name.into())
     }
+
+    fn from_format_args(format_args: fmt::Arguments<'_>) -> Self {
+        Self(format_args.to_string())
+    }
 }
 
 /// Common trait for values
@@ -193,6 +205,10 @@ pub trait Value: AsRef<str> + Default + PartialEq + Sized {
     /// The argument must be a valid value.
     #[must_use]
     fn from_cow_str(value: Cow<'_, str>) -> Self;
+
+    /// Create a value from a precompiled format string.
+    #[must_use]
+    fn from_format_args(format_args: fmt::Arguments<'_>) -> Self;
 }
 
 impl Value for String {
@@ -207,6 +223,10 @@ impl Value for String {
     fn from_cow_str(value: Cow<'_, str>) -> Self {
         value.into()
     }
+
+    fn from_format_args(format_args: fmt::Arguments<'_>) -> Self {
+        format_args.to_string()
+    }
 }
 
 impl Value for CompactString {
@@ -220,6 +240,10 @@ impl Value for CompactString {
 
     fn from_cow_str(value: Cow<'_, str>) -> Self {
         value.into()
+    }
+
+    fn from_format_args(format_args: fmt::Arguments<'_>) -> Self {
+        format_args.to_compact_string()
     }
 }
 

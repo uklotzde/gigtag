@@ -5,7 +5,7 @@
 
 use std::{borrow::Cow, fmt, ops::Deref};
 
-use compact_str::CompactString;
+use compact_str::{CompactString, ToCompactString as _};
 
 /// Check if the given label is valid.
 ///
@@ -46,6 +46,10 @@ pub trait Label: AsRef<str> + fmt::Debug + Default + PartialEq + Ord + Sized {
     #[must_use]
     fn from_cow_str(label: Cow<'_, str>) -> Self;
 
+    /// Create a label from a precompiled format string.
+    #[must_use]
+    fn from_format_args(format_args: fmt::Arguments<'_>) -> Self;
+
     /// [`is_valid()`]
     #[must_use]
     fn is_valid(&self) -> bool {
@@ -59,7 +63,7 @@ pub trait Label: AsRef<str> + fmt::Debug + Default + PartialEq + Ord + Sized {
     }
 }
 
-/// Label with a `CompactString` representation
+/// Label with a [`CompactString`] representation
 #[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[allow(clippy::module_name_repetitions)]
 pub struct CompactLabel(CompactString);
@@ -112,6 +116,10 @@ impl Label for CompactLabel {
 
     fn from_cow_str(label: Cow<'_, str>) -> Self {
         Self(label.into())
+    }
+
+    fn from_format_args(format_args: fmt::Arguments<'_>) -> Self {
+        Self(format_args.to_compact_string())
     }
 }
 
@@ -168,5 +176,9 @@ impl Label for StdLabel {
 
     fn from_cow_str(label: Cow<'_, str>) -> Self {
         Self(label.into())
+    }
+
+    fn from_format_args(format_args: fmt::Arguments<'_>) -> Self {
+        Self(format_args.to_string())
     }
 }

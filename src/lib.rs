@@ -20,6 +20,7 @@ use std::{
     sync::OnceLock,
 };
 
+use compact_str::format_compact;
 use percent_encoding::{percent_decode, percent_encode};
 use thiserror::Error;
 use url::Url;
@@ -161,8 +162,7 @@ where
         let encoded_props_iter = self.props().iter().map(|Property { name, value }| {
             let encoded_name = percent_encode(name.as_ref().as_bytes(), encoding::PROPS);
             let encoded_value = percent_encode(value.as_ref().as_bytes(), encoding::PROPS);
-            // TODO: How to avoid an allocation here?
-            format!("{encoded_name}={encoded_value}")
+            format_compact!("{encoded_name}={encoded_value}")
         });
         let encoded_props = itertools::join(encoded_props_iter, "&");
         if self.has_label() {
