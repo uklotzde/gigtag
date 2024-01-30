@@ -26,13 +26,13 @@ use thiserror::Error;
 use url::Url;
 
 pub mod facet;
-use self::facet::Facet;
+pub use self::facet::{CompactFacet, Facet, StdFacet};
 
 pub mod label;
-use self::label::Label;
+pub use self::label::{CompactLabel, Label, StdLabel};
 
 pub mod props;
-use self::props::Property;
+pub use self::props::{CompactName, CompactProperty, Name, Property, StdName, Value};
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 /// A tag
@@ -51,7 +51,7 @@ impl<F, L, N, V> Tag<F, L, N, V>
 where
     F: Facet,
     L: Label,
-    N: props::Name,
+    N: Name,
 {
     /// Check for a non-empty label.
     #[must_use]
@@ -137,7 +137,7 @@ impl<F, L, N, V> Tag<F, L, N, V>
 where
     F: Facet,
     L: Label,
-    N: props::Name,
+    N: Name,
     V: AsRef<str>,
 {
     /// Encode a tag as a string.
@@ -187,7 +187,7 @@ impl<F, L, N, V> fmt::Display for Tag<F, L, N, V>
 where
     F: Facet,
     L: Label,
-    N: props::Name,
+    N: Name,
     V: AsRef<str>,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -234,8 +234,8 @@ impl<F, L, N, V> Tag<F, L, N, V>
 where
     F: Facet,
     L: Label,
-    N: props::Name,
-    V: props::Value,
+    N: Name,
+    V: Value,
 {
     /// Decode a tag from an encoded token.
     ///
@@ -311,8 +311,8 @@ where
                 }
                 let value = percent_decode(value_encoded).decode_utf8()?;
                 let prop = Property {
-                    name: props::Name::from_cow_str(name),
-                    value: props::Value::from_cow_str(value),
+                    name: Name::from_cow_str(name),
+                    value: Value::from_cow_str(value),
                 };
                 props.push(prop);
             }
@@ -333,8 +333,8 @@ impl<F, L, N, V> FromStr for Tag<F, L, N, V>
 where
     F: Facet,
     L: Label,
-    N: props::Name,
-    V: props::Value,
+    N: Name,
+    V: Value,
 {
     type Err = DecodeError;
 
@@ -361,8 +361,8 @@ impl<F, L, N, V> DecodedTags<F, L, N, V>
 where
     F: Facet,
     L: Label,
-    N: props::Name,
-    V: props::Value,
+    N: Name,
+    V: Value,
 {
     /// Decode from a string slice.
     #[must_use]
