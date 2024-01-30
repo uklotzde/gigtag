@@ -5,7 +5,7 @@
 
 use std::{borrow::Cow, fmt, ops::Deref, sync::OnceLock};
 
-use compact_str::{format_compact, CompactString, ToCompactString as _};
+use compact_str::{CompactString, ToCompactString as _};
 use regex::bytes::Regex;
 use time::{format_description::FormatItem, macros::format_description, Date};
 
@@ -232,19 +232,6 @@ impl Facet for CompactFacet {
 
     fn from_format_args(format_args: fmt::Arguments<'_>) -> Self {
         Self(format_args.to_compact_string())
-    }
-
-    fn from_prefix_with_date_suffix(prefix: &str, date: Date) -> Result<Self, time::error::Format> {
-        let suffix = date.format(DATE_SUFFIX_FORMAT)?;
-        Ok(Self(format_compact!("{prefix}{suffix}")))
-    }
-
-    fn from_prefix_args_with_date_suffix(
-        prefix_args: fmt::Arguments<'_>,
-        date: Date,
-    ) -> Result<Self, time::error::Format> {
-        let suffix = date.format(DATE_SUFFIX_FORMAT)?;
-        Ok(Self(format_compact!("{prefix_args}{suffix}")))
     }
 }
 
