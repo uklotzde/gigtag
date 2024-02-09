@@ -3,12 +3,11 @@
 
 # gigtag
 
-[![Crates.io](https://img.shields.io/crates/v/gigtag.svg)](https://crates.io/crates/gigtag)
-[![Docs.rs](https://docs.rs/gigtag/badge.svg)](https://docs.rs/gigtag)
-[![Deps.rs](https://deps.rs/repo/github/uklotzde/gigtag/status.svg)](https://deps.rs/repo/github/uklotzde/gigtag)
-[![Security audit](https://github.com/uklotzde/gigtag/actions/workflows/security-audit.yaml/badge.svg)](https://github.com/uklotzde/gigtag/actions/workflows/security-audit.yaml)
-[![Continuous integration](https://github.com/uklotzde/gigtag/actions/workflows/continuous-integration.yaml/badge.svg)](https://github.com/uklotzde/gigtag/actions/workflows/continuous-integration.yaml)
-[![License: MPL 2.0](https://img.shields.io/badge/License-MPL_2.0-brightgreen.svg)](https://opensource.org/licenses/MPL-2.0)
+[![crates.io](https://img.shields.io/crates/v/gigtag.svg)](https://crates.io/crates/gigtag)
+[![Docs](https://docs.rs/gigtag/badge.svg)](https://docs.rs/gigtag)
+[![Dependencies](https://deps.rs/repo/github/uklotzde/gigtag/status.svg)](https://deps.rs/repo/github/uklotzde/gigtag)
+[![Testing](https://github.com/uklotzde/gigtag/actions/workflows/test.yaml/badge.svg)](https://github.com/uklotzde/gigtag/actions/workflows/test.yaml)
+[![License: MPL 2.0](https://img.shields.io/badge/License-MPL_2.0-blue.svg)](https://opensource.org/licenses/MPL-2.0)
 
 A lightweight, textual tagging system aimed at DJs for managing custom metadata.
 

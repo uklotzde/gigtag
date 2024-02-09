@@ -20,7 +20,7 @@ compact_str = "0.7.1"
 itertools = "0.12.1"
 percent-encoding = "2.3.1"
 regex = "1.10.3"
-time = { version = "0.3.31", features = ["formatting", "macros", "parsing"] }
+time = { version = "0.3.34", features = ["formatting", "macros", "parsing"] }
 thiserror = "1.0.56"
 url = "2.5.0"
 
