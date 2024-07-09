@@ -42,3 +42,6 @@ pedantic = "warn"
 clone_on_ref_ptr = "warn"
 missing_const_for_fn = "warn"
 self_named_module_files = "warn"
+
+# Workaround for <https://github.com/rust-lang/rust-clippy/issues/12270>
+lint_groups_priority = "allow"
