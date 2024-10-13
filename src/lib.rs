@@ -5,13 +5,7 @@
 //!
 //! Refer to [`docs`] for more information about the idea and the specification.
 
-pub mod docs {
-    //! Documentation and specification
-
-    // TODO: README.md does not contain any Rust code blocks!?
-    #![allow(rustdoc::invalid_rust_codeblocks)]
-    #![doc = include_str!("../README.md")]
-}
+pub mod docs;
 
 use std::{
     cmp::Ordering,
