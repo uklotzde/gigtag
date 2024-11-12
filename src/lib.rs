@@ -7,16 +7,12 @@
 
 pub mod docs;
 
-use std::{
-    cmp::Ordering,
-    fmt,
-    str::{FromStr, Utf8Error},
-    sync::OnceLock,
-};
+use std::{cmp::Ordering, fmt, str::FromStr, sync::OnceLock};
 
+use anyhow::anyhow;
 use compact_str::format_compact;
+use derive_more::{Display, Error};
 use percent_encoding::{percent_decode, percent_encode};
-use thiserror::Error;
 use url::Url;
 
 pub mod facet;
@@ -190,27 +186,14 @@ where
 }
 
 /// A decoding error
-#[derive(Debug, Error)]
+#[derive(Debug, Display, Error)]
 pub enum DecodeError {
     /// Invalid tag.
-    #[error("invalid")]
+    #[display("invalid")]
     InvalidTag,
 
     /// Parse error.
-    #[error(transparent)]
-    Parse(#[from] anyhow::Error),
-}
-
-impl From<Utf8Error> for DecodeError {
-    fn from(from: Utf8Error) -> Self {
-        anyhow::Error::from(from).into()
-    }
-}
-
-impl From<url::ParseError> for DecodeError {
-    fn from(from: url::ParseError) -> Self {
-        anyhow::Error::from(from).into()
-    }
+    Parse(anyhow::Error),
 }
 
 static DUMMY_BASE_URL_WITH_ABSOLUTE_PATH: OnceLock<Url> = OnceLock::new();
@@ -245,26 +228,36 @@ where
     pub fn decode_str(encoded: &str) -> Result<Self, DecodeError> {
         let encoded_trimmed = encoded.trim();
         if encoded_trimmed != encoded {
-            return Err(anyhow::anyhow!("leading/trailing whitespace in encoded input").into());
+            return Err(DecodeError::Parse(anyhow!(
+                "leading/trailing whitespace in encoded input"
+            )));
         }
         if encoded_trimmed.is_empty() {
-            return Err(anyhow::anyhow!("empty encoded input").into());
+            return Err(DecodeError::Parse(anyhow!("empty encoded input")));
         }
         if encoded_trimmed.as_bytes().first() == Some(&b'/') {
-            return Err(anyhow::anyhow!("encoded input starts with leading slash `/`").into());
+            return Err(DecodeError::Parse(anyhow!(
+                "encoded input starts with leading slash `/`"
+            )));
         }
         let parse_options = Url::options().base_url(Some(dummy_base_url()));
-        let url: Url = parse_options.parse(encoded)?;
+        let url: Url = parse_options
+            .parse(encoded)
+            .map_err(Into::into)
+            .map_err(DecodeError::Parse)?;
         if url.scheme() != dummy_base_url().scheme() || url.has_host() || !url.username().is_empty()
         {
-            return Err(anyhow::anyhow!("invalid encoded input").into());
+            return Err(DecodeError::Parse(anyhow!("invalid encoded input")));
         }
         let fragment = url.fragment().unwrap_or_default();
         debug_assert_eq!(fragment.trim(), fragment);
         let label_encoded = fragment.as_bytes();
-        let label = percent_decode(label_encoded).decode_utf8()?;
+        let label = percent_decode(label_encoded)
+            .decode_utf8()
+            .map_err(Into::into)
+            .map_err(DecodeError::Parse)?;
         if !label::is_valid(&label) {
-            return Err(anyhow::anyhow!("invalid label '{label}'").into());
+            return Err(DecodeError::Parse(anyhow!("invalid label '{label}'")));
         }
         // The leading slash in the path from the dummy base URL needs to be skipped.
         let path = url.path();
@@ -272,12 +265,17 @@ where
         debug_assert_eq!(path.trim(), path);
         debug_assert_eq!(path.as_bytes()[0], b'/');
         let facet_encoded = &url.path().as_bytes()[1..];
-        let facet = percent_decode(facet_encoded).decode_utf8()?;
+        let facet = percent_decode(facet_encoded)
+            .decode_utf8()
+            .map_err(Into::into)
+            .map_err(DecodeError::Parse)?;
         if !facet::is_valid(&facet) {
-            return Err(anyhow::anyhow!("invalid facet '{facet}'").into());
+            return Err(DecodeError::Parse(anyhow!("invalid facet '{facet}'")));
         }
         if facet::has_invalid_date_like_suffix(&facet) {
-            return Err(anyhow::anyhow!("facet with invalid date-like suffix '{facet}'").into());
+            return Err(DecodeError::Parse(anyhow!(
+                "facet with invalid date-like suffix '{facet}'"
+            )));
         }
         let mut props = vec![];
         let query = url.query().unwrap_or_default();
@@ -287,23 +285,30 @@ where
             for name_value_encoded in query_encoded.split(|b| *b == b'&') {
                 let mut name_value_encoded_split = name_value_encoded.split(|b| *b == b'=');
                 let Some(name_encoded) = name_value_encoded_split.next() else {
-                    return Err(anyhow::anyhow!("missing property name").into());
+                    return Err(DecodeError::Parse(anyhow!("missing property name")));
                 };
                 let value_encoded = name_value_encoded_split.next().unwrap_or_default();
                 if name_value_encoded_split.next().is_some() {
-                    return Err(anyhow::anyhow!(
+                    return Err(DecodeError::Parse(anyhow!(
                         "malformed name=value property '{name_value}'",
                         name_value = percent_decode(name_value_encoded)
                             .decode_utf8()
                             .unwrap_or_default()
-                    )
-                    .into());
+                    )));
                 }
-                let name = percent_decode(name_encoded).decode_utf8()?;
+                let name = percent_decode(name_encoded)
+                    .decode_utf8()
+                    .map_err(Into::into)
+                    .map_err(DecodeError::Parse)?;
                 if !props::is_name_valid(&name) {
-                    return Err(anyhow::anyhow!("invalid property name '{name}'").into());
+                    return Err(DecodeError::Parse(anyhow!(
+                        "invalid property name '{name}'"
+                    )));
                 }
-                let value = percent_decode(value_encoded).decode_utf8()?;
+                let value = percent_decode(value_encoded)
+                    .decode_utf8()
+                    .map_err(Into::into)
+                    .map_err(DecodeError::Parse)?;
                 let prop = Property {
                     name: Name::from_cow_str(name),
                     value: Value::from_cow_str(value),

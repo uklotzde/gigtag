@@ -15,14 +15,14 @@ include = ["README.md", "LICENSES/", "src/"]
 rust-version = "1.74"
 
 [dependencies]
-anyhow = "1.0.86"
+anyhow = "1.0.93"
 compact_str = "0.8.0"
+derive_more = { version = "1.0.0", features = ["display", "error"]}
 itertools = "0.13.0"
 percent-encoding = "2.3.1"
-regex = "1.10.5"
+regex = "1.11.1"
 time = { version = "0.3.36", features = ["formatting", "macros", "parsing"] }
-thiserror = "1.0.61"
-url = "2.5.2"
+url = "2.5.3"
 
 [features]
 default = []
