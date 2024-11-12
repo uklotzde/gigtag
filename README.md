@@ -200,6 +200,10 @@ field of audio files:
 - Vorbis: `GROUPING`
 - MPEG-4: `©grp`
 
+Some applications like [Engine DJ](https://enginedj.com/) do not support this file tag. In this case
+the encoded _gig tags_ could be appended to the comment field, e.g. separated by a newline
+character.
+
 ## License
 
 Licensed under the Mozilla Public License 2.0 (MPL-2.0) (see [MPL-2.0.txt](LICENSES/MPL-2.0.txt) or
