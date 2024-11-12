@@ -4,7 +4,7 @@
 [package]
 name = "gigtag"
 description = "A lightweight, textual tagging system for DJs."
-version = "0.1.14"
+version = "0.2.0"
 license = "MPL-2.0"
 readme = "README.md"
 repository = "https://github.com/uklotzde/gigtag"
@@ -17,7 +17,7 @@ rust-version = "1.74"
 [dependencies]
 anyhow = "1.0.93"
 compact_str = "0.8.0"
-derive_more = { version = "1.0.0", features = ["display", "error"]}
+derive_more = { version = "1.0.0", features = ["display", "error"] }
 itertools = "0.13.0"
 percent-encoding = "2.3.1"
 regex = "1.11.1"
