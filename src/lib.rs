@@ -406,12 +406,16 @@ where
 
     /// Encode the contents into a separate buffer.
     ///
+    /// Adds a space character before the first encoded tag, if the
+    /// `undecodedPrefix` is not empty and does not end with a
+    /// whitespace character.
+    ///
     /// # Errors
     ///
     /// Returns an [`fmt::Error`] if writing into the buffer fails.
     pub fn encode_into<W: fmt::Write>(&self, write: &mut W) -> fmt::Result {
         write.write_str(&self.undecoded_prefix)?;
-        // Append a separated before the first encoded tag of the undecoded prefix
+        // Append a separator before the first encoded tag of the undecoded prefix
         // is not empty and does not end with a whitespace.
         let mut append_separator = !self.undecoded_prefix.is_empty()
             && self.undecoded_prefix.trim_end() == self.undecoded_prefix;

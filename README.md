@@ -176,18 +176,21 @@ preceding text.
 
 Text is split into tokens that are separated by whitespace. Parsing starts with the last token and
 continues from back to front. It stops when encountering a token that could not be parsed as a valid
-_gig tag_.
+_gig tag_ or at the first _newline_ character (`'\n'` / ASCII `0x0A`).
 
 ##### Retro-fitting
 
-The first token that could not be parsed as a valid _gig tag_ is considered the last token of the
-preceding text. The preceding text including this token and the whitespace until the first valid
-_gig tag_ token must be preserved as an _undecoded prefix_.
+The text before the first valid _gig tag_ is preserved as _undecoded prefix_. This might include
+trailing whitespace.
 
 When re-encoding the _gig tags_ the _undecoded prefix_ that was captured during parsing must be
 prepended to the re-encoded _gig tags_ string. This rule ensures that only whitespace characters
-could get lost during a decode/re-encode roundtrip, i.e. when unintentionally parsing arbitrary
-words from the preceding text as valid _gig tags_ (false positives).
+between and after valid _gig tags_ could get lost during a decode/re-encode roundtrip, i.e. when
+unintentionally parsing arbitrary words from the preceding text as valid _gig tags_ (false
+positives).
+
+Separating the encoded _gig tags_ from the preceding text with a _newline_ character is the
+recommended and safest option to prevent parsing arbitrary text.
 
 ## Storage
 
@@ -201,8 +204,8 @@ field of audio files:
 - MPEG-4: `©grp`
 
 Some applications like [Engine DJ](https://enginedj.com/) do not support this file tag. In this case
-the encoded _gig tags_ could be appended to the comment field, e.g. separated by a newline
-character.
+the encoded _gig tags_ should be appended to the comment field and separated by a newline character
+(`'\n'` / ASCII `0x0A`).
 
 ## License
 
