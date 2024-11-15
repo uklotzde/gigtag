@@ -369,8 +369,10 @@ where
         let mut undecoded_prefix = encoded;
         let mut tags = vec![];
         while !undecoded_prefix.is_empty() {
-            let remainder = undecoded_prefix.trim_end();
-            if remainder.is_empty() {
+            // Skip trailing whitespace, but stop at the first newline character.
+            let remainder =
+                undecoded_prefix.trim_end_matches(|c: char| c != '\n' && c.is_whitespace());
+            if remainder.is_empty() || remainder.ends_with('\n') {
                 break;
             }
             let (next_remainder, next_token) =

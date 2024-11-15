@@ -345,7 +345,7 @@ fn decode_and_reencode_single_tag_without_leading_or_trailing_whitespace() {
 
 #[test]
 fn decode_and_reencode_tags_exhaustive() {
-    let decoded = DecodedTags::decode_str("  #Tag1\t#Tag%202  wishlist@20220526#Someone \n");
+    let decoded = DecodedTags::decode_str("  #Tag1\t#Tag%202  wishlist@20220526#Someone \t");
     assert!(decoded.undecoded_prefix.is_empty());
     let reencoded = decoded.reencode().unwrap();
     assert_eq!("#Tag1 #Tag%202 wishlist@20220526#Someone", reencoded);
@@ -354,7 +354,7 @@ fn decode_and_reencode_tags_exhaustive() {
 #[test]
 fn decode_and_reencode_tags_partially() {
     let undecoded_prefix = "This text should be preserved including the trailing newline\n";
-    let encoded = format!("{undecoded_prefix}#Tag1\t#Tag%202  wishlist@20220526#Someone \n");
+    let encoded = format!("{undecoded_prefix}#Tag1\t#Tag%202  wishlist@20220526#Someone \t");
     let decoded = DecodedTags::decode_str(&encoded);
     assert_eq!(undecoded_prefix, decoded.undecoded_prefix);
     assert_eq!(3, decoded.tags.len());
@@ -369,9 +369,9 @@ fn decode_and_reencode_tags_partially() {
 fn reorder_and_dedup1() {
     let mut decoded = DecodedTags::decode_str(
         " Arbitrary comments with\twhitespace  before the first\n valid gig tag\t #b \
-         @20220624#label
+         @20220624#label \
             wishlist@20220625 #C @20220624#Label #A  wishlist@20220625 \
-         wishlist@20220625#By%20someone\n
+         wishlist@20220625#By%20someone\t\r \
             @20220626#Label non-data-like-facet#a non-data-like-facet#B @20220626#Label",
     );
     assert_eq!(12, decoded.tags.len());
@@ -390,9 +390,9 @@ fn reorder_and_dedup1() {
 #[test]
 fn reorder_and_dedup2() {
     let mut decoded = DecodedTags::decode_str(
-        " Arbitrary comments with\twhitespace  before the first\n valid gig tag\t@20220624#Label
-            wishlist@20220625#By%20someone wishlist@20220625 #first_gigtag @20220624#Label
-            wishlist@20220625\n @20220626#Label #first_gigtag @20220626#Label",
+        " Arbitrary comments with\twhitespace  before the first\n valid gig tag #NoTagBeforeWhitespace \n@20220624#Label \
+            wishlist@20220625#By%20someone wishlist@20220625 #first_gigtag @20220624#Label\t\
+            wishlist@20220625\t @20220626#Label #first_gigtag @20220626#Label"
     );
     assert_eq!(9, decoded.tags.len());
     decoded.reorder_and_dedup();
@@ -400,7 +400,7 @@ fn reorder_and_dedup2() {
     let mut reencoded = String::new();
     assert!(decoded.encode_into(&mut reencoded).is_ok());
     assert_eq!(
-        " Arbitrary comments with\twhitespace  before the first\n valid gig tag\t#first_gigtag \
+        " Arbitrary comments with\twhitespace  before the first\n valid gig tag #NoTagBeforeWhitespace \n#first_gigtag \
          @20220626#Label wishlist@20220625#By%20someone wishlist@20220625 @20220624#Label",
         reencoded
     );
