@@ -189,8 +189,11 @@ between and after valid _gig tags_ could get lost during a decode/re-encode roun
 unintentionally parsing arbitrary words from the preceding text as valid _gig tags_ (false
 positives).
 
-Separating the encoded _gig tags_ from the preceding text with a _newline_ character is the
-recommended and safest option to prevent parsing arbitrary text.
+Delimiting the encoded _gig tags_ from the preceding text with a _newline_ character is the safest
+option to prevent unintentionally parsing arbitrary text. Unfortunately, some tag editors like
+_QuodLibet_ (version 4.6.0) do not support multi-line text in tags very well. Therefore using a
+single space character `' '` as the delimiter between the preceding text and the encoded _gig tags_
+is an acceptable workaround for ensuring maximum compatibility.
 
 ## Storage
 
