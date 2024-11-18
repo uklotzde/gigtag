@@ -169,8 +169,12 @@ Subsequent URIs are separated by whitespace, e.g. a single ASCII space character
 ##### Retro-fitting
 
 Often it is not possible to store the encoded _gig tags_ in a reserved field. In this case _gig
-tags_ could appended to any text field by separating them with arbitrary whitespace from the
+tags_ could appended to any text field by delimiting them with arbitrary whitespace from the
 preceding text.
+
+Use either the _newline_ character (`'\n'` / ASCII `0x0A`) for maximum safety or the _space_
+character (`' '` / ASCII `0x20`) for maximum compatibility. Unfortunately, some tag editors like
+_QuodLibet_ (version 4.6.0) do not support multi-line text in file tags very well.
 
 #### Parsing
 
@@ -189,12 +193,6 @@ between and after valid _gig tags_ could get lost during a decode/re-encode roun
 unintentionally parsing arbitrary words from the preceding text as valid _gig tags_ (false
 positives).
 
-Delimiting the encoded _gig tags_ from the preceding text with a _newline_ character is the safest
-option to prevent unintentionally parsing arbitrary text. Unfortunately, some tag editors like
-_QuodLibet_ (version 4.6.0) do not support multi-line text in tags very well. Therefore using a
-single space character `' '` as the delimiter between the preceding text and the encoded _gig tags_
-is an acceptable workaround for ensuring maximum compatibility.
-
 ## Storage
 
 ### File metadata
@@ -207,8 +205,7 @@ field of audio files:
 - MPEG-4: `©grp`
 
 Some applications like [Engine DJ](https://enginedj.com/) do not support this file tag. In this case
-the encoded _gig tags_ should be appended to the comment field and separated by a newline character
-(`'\n'` / ASCII `0x0A`).
+the encoded _gig tags_ should be appended to the comment field instead.
 
 ## License
 
