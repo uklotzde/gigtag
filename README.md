@@ -197,15 +197,18 @@ positives).
 
 ### File metadata
 
-The text with the encoded _gig tags_ is appended (separated by whitespace) to the _Content Group_
-field of audio files:
+The text with the encoded _gig tags_ is appended (separated by whitespace) to the
+[_Grouping_](https://picard-docs.musicbrainz.org/en/appendices/tag_mapping.html#grouping-3) field of
+audio files:
 
 - ID3v2: `GRP1` (primary/preferred) / `TIT11` (traditional/fallback)
 - Vorbis: `GROUPING`
 - MPEG-4: `©grp`
 
 Some applications like [Engine DJ](https://enginedj.com/) do not support this file tag. In this case
-the encoded _gig tags_ should be appended to the comment field instead.
+the encoded _gig tags_ should be appended to the
+[_Comment_](https://picard-docs.musicbrainz.org/en/appendices/tag_mapping.html#comment-4) field
+instead.
 
 ## License
 
