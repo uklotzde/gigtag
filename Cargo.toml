@@ -17,7 +17,7 @@ rust-version = "1.74"
 [dependencies]
 anyhow = "1.0.95"
 compact_str = "0.8.1"
-derive_more = { version = "1.0.0", features = ["display", "error"] }
+derive_more = { version = "2.0.1", features = ["display", "error"] }
 itertools = "0.14.0"
 percent-encoding = "2.3.1"
 regex = "1.11.1"
