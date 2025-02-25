@@ -7,7 +7,7 @@ use std::{borrow::Cow, fmt, ops::Deref, sync::OnceLock};
 
 use compact_str::{CompactString, ToCompactString as _};
 use regex::bytes::Regex;
-use time::{format_description::FormatItem, macros::format_description, Date};
+use time::{Date, format_description::FormatItem, macros::format_description};
 
 /// Check if the given facet is valid.
 ///

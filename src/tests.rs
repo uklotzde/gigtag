@@ -23,54 +23,64 @@ fn empty_tag_is_invalid() {
 
 #[test]
 fn tag_with_only_a_label_is_valid() {
-    assert!(Tag {
-        label: Label::from_str("A label"),
-        ..Default::default()
-    }
-    .is_valid());
+    assert!(
+        Tag {
+            label: Label::from_str("A label"),
+            ..Default::default()
+        }
+        .is_valid()
+    );
 }
 
 #[test]
 fn tag_with_only_a_date_like_facet_is_valid() {
-    assert!(Tag {
-        facet: Facet::from_str("@01234567"),
-        ..Default::default()
-    }
-    .is_valid());
+    assert!(
+        Tag {
+            facet: Facet::from_str("@01234567"),
+            ..Default::default()
+        }
+        .is_valid()
+    );
 }
 
 #[test]
 fn tag_with_only_a_non_date_like_facet_is_invalid() {
-    assert!(!Tag {
-        facet: Facet::from_str("non-date-like-facet"),
-        ..Default::default()
-    }
-    .is_valid());
+    assert!(
+        !Tag {
+            facet: Facet::from_str("non-date-like-facet"),
+            ..Default::default()
+        }
+        .is_valid()
+    );
 }
 
 #[test]
 fn tag_with_only_properties_is_invalid() {
-    assert!(!Tag {
-        props: vec![Property {
-            name: props::Name::from_str("name"),
-            value: props::Value::from_str("value"),
-        },],
-        ..Default::default()
-    }
-    .is_valid());
+    assert!(
+        !Tag {
+            props: vec![Property {
+                name: props::Name::from_str("name"),
+                value: props::Value::from_str("value"),
+            },],
+            ..Default::default()
+        }
+        .is_valid()
+    );
 }
 
 #[test]
 fn tag_with_only_a_non_date_like_facet_and_props_is_valid() {
-    assert!(Tag {
-        facet: Facet::from_str("non-date-like-facet"),
-        props: vec![Property {
-            name: props::Name::from_str("name"),
-            value: props::Value::from_str("value"),
-        },],
-        ..Default::default()
-    }
-    .is_valid());
+    assert!(
+        Tag {
+            facet: Facet::from_str("non-date-like-facet"),
+            props: vec![Property {
+                name: props::Name::from_str("name"),
+                value: props::Value::from_str("value"),
+            },],
+            ..Default::default()
+        }
+        .is_valid()
+    );
 }
 
 #[test]
@@ -392,7 +402,7 @@ fn reorder_and_dedup2() {
     let mut decoded = DecodedTags::decode_str(
         " Arbitrary comments with\twhitespace  before the first\n valid gig tag #NoTagBeforeWhitespace \n@20220624#Label \
             wishlist@20220625#By%20someone wishlist@20220625 #first_gigtag @20220624#Label\t\
-            wishlist@20220625\t @20220626#Label #first_gigtag @20220626#Label"
+            wishlist@20220625\t @20220626#Label #first_gigtag @20220626#Label",
     );
     assert_eq!(9, decoded.tags.len());
     decoded.reorder_and_dedup();

@@ -10,9 +10,9 @@ readme = "README.md"
 repository = "https://github.com/uklotzde/gigtag"
 keywords = ["music", "dj", "metadata", "tagging"]
 categories = ["parser-implementations"]
-edition = "2021"
+edition = "2024"
 include = ["README.md", "LICENSES/", "src/"]
-rust-version = "1.74"
+rust-version = "1.85"
 
 [dependencies]
 anyhow = "1.0.96"
@@ -33,6 +33,7 @@ let_underscore = "warn"
 missing_debug_implementations = "warn"
 rust_2018_idioms = "warn"
 rust_2021_compatibility = "warn"
+rust_2024_compatibility = "warn"
 unreachable_pub = "warn"
 unsafe_code = "warn"
 unused = "warn"
