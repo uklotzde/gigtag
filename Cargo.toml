@@ -4,7 +4,7 @@
 [package]
 name = "gigtag"
 description = "A lightweight, textual tagging system for DJs."
-version = "0.2.3"
+version = "0.3.0"
 license = "MPL-2.0"
 readme = "README.md"
 repository = "https://github.com/uklotzde/gigtag"
