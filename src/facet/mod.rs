@@ -3,11 +3,12 @@
 
 //! Facets
 
-use std::{borrow::Cow, fmt, ops::Deref, sync::OnceLock};
+use std::{fmt, sync::OnceLock};
 
-use compact_str::{CompactString, ToCompactString as _};
 use regex::bytes::Regex;
 use time::{Date, format_description::FormatItem, macros::format_description};
+
+use crate::StringTyped;
 
 /// Check if the given facet is valid.
 ///
@@ -92,33 +93,11 @@ pub fn has_invalid_date_like_suffix(facet: &str) -> bool {
 }
 
 fn format_date_like_suffix(date: Date) -> Result<String, time::error::Format> {
-    // Use a `CompactString` for formatting the date-like suffix
-    // to avoid allocating a (probably temporary) `String`.
     date.format(DATE_LIKE_SUFFIX_FORMAT)
 }
 
 /// Common trait for facets
-pub trait Facet: AsRef<str> + fmt::Debug + Default + PartialEq + Ord + Sized {
-    /// Create a facet from a borrowed string slice.
-    #[must_use]
-    fn from_str(facet: &str) -> Self {
-        Self::from_cow_str(facet.into())
-    }
-
-    /// Create a facet from an owned string.
-    #[must_use]
-    fn from_string(facet: String) -> Self {
-        Self::from_cow_str(facet.into())
-    }
-
-    /// Create a facet from a copy-on-write string.
-    #[must_use]
-    fn from_cow_str(facet: Cow<'_, str>) -> Self;
-
-    /// Create a facet from a precompiled format string.
-    #[must_use]
-    fn from_format_args(format_args: fmt::Arguments<'_>) -> Self;
-
+pub trait Facet: StringTyped + Default + PartialEq + Ord {
     /// Concatenate a prefix and [`Date`] suffix to a facet.
     ///
     /// The prefix string must not end with trailing whitespace,
@@ -181,125 +160,7 @@ pub trait Facet: AsRef<str> + fmt::Debug + Default + PartialEq + Ord + Sized {
     }
 }
 
-/// Facet with a [`CompactString`] representation
-#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[allow(clippy::module_name_repetitions)]
-pub struct CompactFacet(CompactString);
-
-impl CompactFacet {
-    /// Create a new facet.
-    ///
-    /// The argument is not validated.
-    #[must_use]
-    pub const fn new(inner: CompactString) -> Self {
-        Self(inner)
-    }
-}
-
-impl From<CompactString> for CompactFacet {
-    fn from(from: CompactString) -> Self {
-        Self::new(from)
-    }
-}
-
-impl From<CompactFacet> for CompactString {
-    fn from(from: CompactFacet) -> Self {
-        let CompactFacet(inner) = from;
-        inner
-    }
-}
-
-impl AsRef<str> for CompactFacet {
-    fn as_ref(&self) -> &str {
-        &self.0
-    }
-}
-
-impl Deref for CompactFacet {
-    type Target = str;
-
-    fn deref(&self) -> &Self::Target {
-        self.as_ref()
-    }
-}
-
-impl Facet for CompactFacet {
-    fn from_str(facet: &str) -> Self {
-        Self(facet.into())
-    }
-
-    fn from_string(facet: String) -> Self {
-        Self(facet.into())
-    }
-
-    fn from_cow_str(facet: Cow<'_, str>) -> Self {
-        Self(facet.into())
-    }
-
-    fn from_format_args(format_args: fmt::Arguments<'_>) -> Self {
-        Self(format_args.to_compact_string())
-    }
-}
-
-/// Facet with a full-blown [`String`] representation
-#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[allow(clippy::module_name_repetitions)]
-pub struct StdFacet(String);
-
-impl StdFacet {
-    /// Create a new facet.
-    ///
-    /// The argument is not validated.
-    #[must_use]
-    pub const fn new(inner: String) -> Self {
-        Self(inner)
-    }
-}
-
-impl From<String> for StdFacet {
-    fn from(from: String) -> Self {
-        Self::new(from)
-    }
-}
-
-impl From<StdFacet> for String {
-    fn from(from: StdFacet) -> Self {
-        let StdFacet(inner) = from;
-        inner
-    }
-}
-
-impl AsRef<str> for StdFacet {
-    fn as_ref(&self) -> &str {
-        &self.0
-    }
-}
-
-impl Deref for StdFacet {
-    type Target = str;
-
-    fn deref(&self) -> &Self::Target {
-        self.as_ref()
-    }
-}
-
-impl Facet for StdFacet {
-    fn from_str(facet: &str) -> Self {
-        Self(facet.into())
-    }
-
-    fn from_string(facet: String) -> Self {
-        Self(facet)
-    }
-
-    fn from_cow_str(facet: Cow<'_, str>) -> Self {
-        Self(facet.into())
-    }
-
-    fn from_format_args(format_args: fmt::Arguments<'_>) -> Self {
-        Self(format_args.to_string())
-    }
-}
+impl<T> Facet for T where T: StringTyped + Default + PartialEq + Ord {}
 
 #[cfg(test)]
 mod tests;

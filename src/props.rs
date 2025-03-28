@@ -3,9 +3,7 @@
 
 //! Named properties
 
-use std::{borrow::Cow, fmt, ops::Deref};
-
-use compact_str::{CompactString, ToCompactString as _};
+use crate::StringTyped;
 
 /// Check if the given name is valid.
 ///
@@ -22,34 +20,8 @@ pub fn is_name_empty(name: &str) -> bool {
     name.is_empty()
 }
 
-/// Common trait for names
-pub trait Name: AsRef<str> + fmt::Debug + Default + PartialEq + Sized {
-    /// Create a name from a borrowed string slice.
-    ///
-    /// The argument must be a valid name.
-    #[must_use]
-    fn from_str(name: &str) -> Self {
-        Self::from_cow_str(name.into())
-    }
-
-    /// Create a name from a owned string.
-    ///
-    /// The argument must be a valid name.
-    #[must_use]
-    fn from_string(name: String) -> Self {
-        Self::from_cow_str(name.into())
-    }
-
-    /// Create a name from a copy-on-write string.
-    ///
-    /// The argument must be a valid name.
-    #[must_use]
-    fn from_cow_str(name: Cow<'_, str>) -> Self;
-
-    /// Create a name from a precompiled format string.
-    #[must_use]
-    fn from_format_args(format_args: fmt::Arguments<'_>) -> Self;
-
+/// Common trait for names.
+pub trait Name: StringTyped + Default + PartialEq {
     /// [`is_name_valid()`]
     #[must_use]
     fn is_valid(&self) -> bool {
@@ -63,189 +35,12 @@ pub trait Name: AsRef<str> + fmt::Debug + Default + PartialEq + Sized {
     }
 }
 
-/// A name with a `CompactString` representation
-#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct CompactName(CompactString);
-
-impl CompactName {
-    /// Create a new name.
-    ///
-    /// The argument is not validated.
-    #[must_use]
-    pub const fn new(inner: CompactString) -> Self {
-        Self(inner)
-    }
-}
-
-impl From<CompactString> for CompactName {
-    fn from(from: CompactString) -> Self {
-        Self::new(from)
-    }
-}
-
-impl From<CompactName> for CompactString {
-    fn from(from: CompactName) -> Self {
-        let CompactName(inner) = from;
-        inner
-    }
-}
-
-impl AsRef<str> for CompactName {
-    fn as_ref(&self) -> &str {
-        &self.0
-    }
-}
-
-impl Deref for CompactName {
-    type Target = str;
-
-    fn deref(&self) -> &Self::Target {
-        self.as_ref()
-    }
-}
-
-impl Name for CompactName {
-    fn from_str(name: &str) -> Self {
-        Self(name.into())
-    }
-
-    fn from_string(name: String) -> Self {
-        Self(name.into())
-    }
-
-    fn from_cow_str(name: Cow<'_, str>) -> Self {
-        Self(name.into())
-    }
-
-    fn from_format_args(format_args: fmt::Arguments<'_>) -> Self {
-        Self(format_args.to_compact_string())
-    }
-}
-
-/// Name with a full-blown `String` representation
-#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[allow(clippy::module_name_repetitions)]
-pub struct StdName(String);
-
-impl StdName {
-    /// Create a new name.
-    ///
-    /// The argument is not validated.
-    #[must_use]
-    pub const fn new(inner: String) -> Self {
-        Self(inner)
-    }
-}
-
-impl From<String> for StdName {
-    fn from(from: String) -> Self {
-        Self::new(from)
-    }
-}
-
-impl From<StdName> for String {
-    fn from(from: StdName) -> Self {
-        let StdName(inner) = from;
-        inner
-    }
-}
-
-impl AsRef<str> for StdName {
-    fn as_ref(&self) -> &str {
-        &self.0
-    }
-}
-
-impl Deref for StdName {
-    type Target = str;
-
-    fn deref(&self) -> &Self::Target {
-        self.as_ref()
-    }
-}
-
-impl Name for StdName {
-    fn from_str(name: &str) -> Self {
-        Self(name.into())
-    }
-
-    fn from_string(name: String) -> Self {
-        Self(name)
-    }
-
-    fn from_cow_str(name: Cow<'_, str>) -> Self {
-        Self(name.into())
-    }
-
-    fn from_format_args(format_args: fmt::Arguments<'_>) -> Self {
-        Self(format_args.to_string())
-    }
-}
+impl<T> Name for T where T: StringTyped + Default + PartialEq {}
 
 /// Common trait for values
-pub trait Value: AsRef<str> + Default + PartialEq + Sized {
-    /// Create a value from a borrowed string slice.
-    ///
-    /// The argument must be a valid value.
-    #[must_use]
-    fn from_str(value: &str) -> Self {
-        Self::from_cow_str(value.into())
-    }
+pub trait Value: StringTyped + Default + PartialEq {}
 
-    /// Create a value from a owned string.
-    ///
-    /// The argument must be a valid value.
-    #[must_use]
-    fn from_string(value: String) -> Self {
-        Self::from_cow_str(value.into())
-    }
-
-    /// Create a value from a copy-on-write string.
-    ///
-    /// The argument must be a valid value.
-    #[must_use]
-    fn from_cow_str(value: Cow<'_, str>) -> Self;
-
-    /// Create a value from a precompiled format string.
-    #[must_use]
-    fn from_format_args(format_args: fmt::Arguments<'_>) -> Self;
-}
-
-impl Value for String {
-    fn from_str(value: &str) -> Self {
-        value.into()
-    }
-
-    fn from_string(value: String) -> Self {
-        value
-    }
-
-    fn from_cow_str(value: Cow<'_, str>) -> Self {
-        value.into()
-    }
-
-    fn from_format_args(format_args: fmt::Arguments<'_>) -> Self {
-        format_args.to_string()
-    }
-}
-
-impl Value for CompactString {
-    fn from_str(value: &str) -> Self {
-        value.into()
-    }
-
-    fn from_string(value: String) -> Self {
-        value.into()
-    }
-
-    fn from_cow_str(value: Cow<'_, str>) -> Self {
-        value.into()
-    }
-
-    fn from_format_args(format_args: fmt::Arguments<'_>) -> Self {
-        format_args.to_compact_string()
-    }
-}
+impl<T> Value for T where T: StringTyped + Default + PartialEq {}
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 /// A named property
@@ -286,6 +81,3 @@ where
         self.has_name()
     }
 }
-
-/// Property with a `CompactString` representation for names
-pub type CompactProperty<V> = Property<CompactName, V>;

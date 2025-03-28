@@ -20,7 +20,7 @@ repos:
       - id: mixed-line-ending
       - id: trailing-whitespace
   - repo: https://github.com/alessandrojcm/commitlint-pre-commit-hook
-    rev: v9.21.0
+    rev: v9.22.0
     hooks:
       - id: commitlint
         stages: [commit-msg]
@@ -35,7 +35,7 @@ repos:
       - id: codespell
         args: [--ignore-words=.codespellignore]
   - repo: https://github.com/sirosen/check-jsonschema
-    rev: 0.31.2
+    rev: 0.31.3
     hooks:
       - id: check-github-actions
       - id: check-github-workflows
@@ -69,6 +69,9 @@ repos:
       - id: fmt
         args: [--all, --]
       - id: clippy
+        args: [--locked, --workspace, --all-targets, --, -D, warnings]
+      - id: clippy
+        name: clippy (all-features)
         args: [--locked, --workspace, --all-features, --all-targets, --, -D, warnings]
   - repo: local
     hooks:

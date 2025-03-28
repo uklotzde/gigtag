@@ -12,10 +12,12 @@ fmt:
 
 # Run clippy
 clippy:
+    cargo clippy --locked --workspace --no-deps --all-targets -- -D warnings --cap-lints warn
     cargo clippy --locked --workspace --no-deps --all-targets --all-features -- -D warnings --cap-lints warn
 
 # Run unit tests
 test:
+    RUST_BACKTRACE=1 cargo test --locked --workspace -- --nocapture
     RUST_BACKTRACE=1 cargo test --locked --workspace --all-features -- --nocapture
 
 # Set up (and update) tooling

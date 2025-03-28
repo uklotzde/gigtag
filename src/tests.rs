@@ -1,20 +1,12 @@
 // SPDX-FileCopyrightText: The gigtag authors
 // SPDX-License-Identifier: MPL-2.0
 
-#![allow(clippy::redundant_clone)]
+#![expect(clippy::redundant_clone)]
 
-use compact_str::CompactString;
+use crate::{Facet as _, Property, StringTyped};
 
-use super::{
-    facet::{CompactFacet, Facet as _},
-    label::{CompactLabel, Label as _},
-    *,
-};
-
-type Facet = CompactFacet;
-type Label = CompactLabel;
-type Tag = super::Tag<Facet, Label, props::CompactName, CompactString>;
-type DecodedTags = super::DecodedTags<Facet, Label, props::CompactName, CompactString>;
+type Tag = super::Tag<String, String, String, String>;
+type DecodedTags = super::DecodedTags<String, String, String, String>;
 
 #[test]
 fn empty_tag_is_invalid() {
@@ -25,7 +17,7 @@ fn empty_tag_is_invalid() {
 fn tag_with_only_a_label_is_valid() {
     assert!(
         Tag {
-            label: Label::from_str("A label"),
+            label: <String as StringTyped>::from_str("A label"),
             ..Default::default()
         }
         .is_valid()
@@ -36,7 +28,7 @@ fn tag_with_only_a_label_is_valid() {
 fn tag_with_only_a_date_like_facet_is_valid() {
     assert!(
         Tag {
-            facet: Facet::from_str("@01234567"),
+            facet: <String as StringTyped>::from_str("@01234567"),
             ..Default::default()
         }
         .is_valid()
@@ -47,7 +39,7 @@ fn tag_with_only_a_date_like_facet_is_valid() {
 fn tag_with_only_a_non_date_like_facet_is_invalid() {
     assert!(
         !Tag {
-            facet: Facet::from_str("non-date-like-facet"),
+            facet: <String as StringTyped>::from_str("non-date-like-facet"),
             ..Default::default()
         }
         .is_valid()
@@ -59,8 +51,8 @@ fn tag_with_only_properties_is_invalid() {
     assert!(
         !Tag {
             props: vec![Property {
-                name: props::Name::from_str("name"),
-                value: props::Value::from_str("value"),
+                name: <String as StringTyped>::from_str("name"),
+                value: <String as StringTyped>::from_str("value"),
             },],
             ..Default::default()
         }
@@ -72,10 +64,10 @@ fn tag_with_only_properties_is_invalid() {
 fn tag_with_only_a_non_date_like_facet_and_props_is_valid() {
     assert!(
         Tag {
-            facet: Facet::from_str("non-date-like-facet"),
+            facet: <String as StringTyped>::from_str("non-date-like-facet"),
             props: vec![Property {
-                name: props::Name::from_str("name"),
-                value: props::Value::from_str("value"),
+                name: <String as StringTyped>::from_str("name"),
+                value: <String as StringTyped>::from_str("value"),
             },],
             ..Default::default()
         }
@@ -85,19 +77,20 @@ fn tag_with_only_a_non_date_like_facet_and_props_is_valid() {
 
 #[test]
 fn encode_decode() {
-    let label: Label = Label::from_str("My Tag (foo+bar)");
+    let label = <String as StringTyped>::from_str("My Tag (foo+bar)");
     let encoded_label = "My%20Tag%20(foo+bar)";
-    let facet: Facet =
-        Facet::from_str("a/date//facet+with ?special#characters and whitespace@20220625");
+    let facet = <String as StringTyped>::from_str(
+        "a/date//facet+with ?special#characters and whitespace@20220625",
+    );
     let encoded_facet = "a/date//facet+with%20%3Fspecial%23characters%20and%20whitespace@20220625";
     let props = vec![
         Property {
-            name: props::Name::from_str("prop?\n \t1"),
-            value: props::Value::from_str("Hello, World!"),
+            name: <String as StringTyped>::from_str("prop?\n \t1"),
+            value: <String as StringTyped>::from_str("Hello, World!"),
         },
         Property {
-            name: props::Name::from_str("prop #2"),
-            value: props::Value::from_str("0.123"),
+            name: <String as StringTyped>::from_str("prop #2"),
+            value: <String as StringTyped>::from_str("0.123"),
         },
     ];
     let encoded_props = "prop?%0A%20%091=Hello,%20World!&prop%20%232=0.123";
@@ -144,13 +137,13 @@ fn encode_decode() {
 
 #[test]
 fn encode_decode_reserved_and_special_characters() {
-    let label: Label = Label::from_str("!#$&'()*+,/:;=?@[]%Label~!#$&'()*+,/:;=?@[]");
+    let label = <String as StringTyped>::from_str("!#$&'()*+,/:;=?@[]%Label~!#$&'()*+,/:;=?@[]");
     let encoded_label = "!#$&'()*+,/:;=?@[]%25Label~!#$&'()*+,/:;=?@[]";
-    let facet: Facet = Facet::from_str("!#$&'()*+,/:;=?@[]%Facet~!#$&'()*+,/:;=?@[]");
+    let facet = <String as StringTyped>::from_str("!#$&'()*+,/:;=?@[]%Facet~!#$&'()*+,/:;=?@[]");
     let encoded_facet = "!%23$&'()*+,/:;=%3F@[]%25Facet~!%23$&'()*+,/:;=%3F@[]";
     let props = vec![Property {
-        name: props::Name::from_str("!#$&'()*+,/:;=?@[]%Name~!#$&'()*+,/:;=?@[]"),
-        value: props::Value::from_str("!#$&'()*+,/:;=?@[]%Value~!#$&'()*+,/:;=?@[]"),
+        name: <String as StringTyped>::from_str("!#$&'()*+,/:;=?@[]%Name~!#$&'()*+,/:;=?@[]"),
+        value: <String as StringTyped>::from_str("!#$&'()*+,/:;=?@[]%Value~!#$&'()*+,/:;=?@[]"),
     }];
     let encoded_props = "!%23$%26'()*+,/:;%3D?@[]%25Name~!%23$%26'()*+,/:;%3D?@[]=!%23$%26'()*+,/:\
                          ;%3D?@[]%25Value~!%23$%26'()*+,/:;%3D?@[]";
@@ -262,21 +255,21 @@ fn should_fail_to_decode_prop_name_with_leading_or_trailing_whitespace() {
 
 #[test]
 fn parse_from_str_allows_leading_or_trailing_whitespace() {
-    assert_eq!("label", " #label".parse::<Tag>().unwrap().label().as_ref());
-    assert_eq!("label", "#label ".parse::<Tag>().unwrap().label().as_ref());
+    assert_eq!("label", " #label".parse::<Tag>().unwrap().label().as_str());
+    assert_eq!("label", "#label ".parse::<Tag>().unwrap().label().as_str());
     assert_eq!(
         "@20220625",
-        " @20220625".parse::<Tag>().unwrap().facet().as_ref()
+        " @20220625".parse::<Tag>().unwrap().facet().as_str()
     );
     assert_eq!(
         "@20220625",
-        "@20220625 ".parse::<Tag>().unwrap().facet().as_ref()
+        "@20220625 ".parse::<Tag>().unwrap().facet().as_str()
     );
 }
 
 #[test]
 fn tags_with_date_facets() {
-    let facet_with_date_only: Facet = Facet::from_str("@20220625");
+    let facet_with_date_only = <String as StringTyped>::from_str("@20220625");
     let tag = Tag {
         facet: facet_with_date_only,
         ..Default::default()
@@ -284,7 +277,7 @@ fn tags_with_date_facets() {
     assert!(tag.is_valid());
     assert!(tag.facet().has_date_like_suffix());
 
-    let facet_with_text_and_date: Facet = Facet::from_str("text@20220625");
+    let facet_with_text_and_date = <String as StringTyped>::from_str("text@20220625");
     let tag = Tag {
         facet: facet_with_text_and_date,
         ..tag
@@ -292,7 +285,7 @@ fn tags_with_date_facets() {
     assert!(tag.is_valid());
     assert!(tag.facet().has_date_like_suffix());
 
-    let facet_without_date_suffix: Facet = Facet::from_str("20220625");
+    let facet_without_date_suffix = <String as StringTyped>::from_str("20220625");
     let tag = Tag {
         facet: facet_without_date_suffix,
         ..tag

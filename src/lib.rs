@@ -7,22 +7,92 @@
 
 pub mod docs;
 
-use std::{cmp::Ordering, fmt, str::FromStr, sync::OnceLock};
+use std::{borrow::Cow, cmp::Ordering, fmt, str::FromStr, sync::OnceLock};
 
 use anyhow::anyhow;
-use compact_str::format_compact;
 use derive_more::{Display, Error};
 use percent_encoding::{percent_decode, percent_encode};
 use url::Url;
 
 pub mod facet;
-pub use self::facet::{CompactFacet, Facet, StdFacet};
+pub use self::facet::Facet;
 
 pub mod label;
-pub use self::label::{CompactLabel, Label, StdLabel};
+pub use self::label::Label;
 
 pub mod props;
-pub use self::props::{CompactName, CompactProperty, Name, Property, StdName, Value};
+pub use self::props::{Name, Property, Value};
+
+pub trait StringTyped: Sized + AsRef<str> + fmt::Debug + fmt::Display {
+    fn from_str(from_str: &str) -> Self;
+
+    fn from_cow_str(from_cow: Cow<'_, str>) -> Self;
+
+    fn from_format_args(from_format_args: fmt::Arguments<'_>) -> Self;
+
+    fn as_str(&self) -> &str;
+}
+
+impl StringTyped for String {
+    fn from_str(from_str: &str) -> Self {
+        from_str.to_owned()
+    }
+
+    fn from_cow_str(from_cow: Cow<'_, str>) -> Self {
+        from_cow.into_owned()
+    }
+
+    fn from_format_args(from_format_args: fmt::Arguments<'_>) -> Self {
+        std::fmt::format(from_format_args)
+    }
+
+    fn as_str(&self) -> &str {
+        self.as_str()
+    }
+}
+
+#[cfg(feature = "compact_str")]
+impl StringTyped for compact_str::CompactString {
+    fn from_str(from_str: &str) -> Self {
+        from_str.into()
+    }
+
+    fn from_cow_str(from_cow: Cow<'_, str>) -> Self {
+        from_cow.into()
+    }
+
+    fn from_format_args(from_format_args: fmt::Arguments<'_>) -> Self {
+        // Copied from implementation of format_compact!();
+        compact_str::ToCompactString::to_compact_string(&from_format_args)
+    }
+
+    fn as_str(&self) -> &str {
+        self.as_str()
+    }
+}
+
+#[cfg(feature = "smol_str")]
+impl StringTyped for smol_str::SmolStr {
+    fn from_str(from_str: &str) -> Self {
+        from_str.into()
+    }
+
+    fn from_cow_str(from_cow: Cow<'_, str>) -> Self {
+        from_cow.into()
+    }
+
+    fn from_format_args(from_format_args: fmt::Arguments<'_>) -> Self {
+        // Copied from implementation of format_smolstr!();
+        let mut w = smol_str::SmolStrBuilder::new();
+        ::core::fmt::Write::write_fmt(&mut w, from_format_args)
+            .expect("a formatting trait implementation returned an error");
+        w.finish()
+    }
+
+    fn as_str(&self) -> &str {
+        self.as_str()
+    }
+}
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 /// A tag
@@ -47,7 +117,7 @@ where
     #[must_use]
     pub fn has_label(&self) -> bool {
         debug_assert!(self.label.is_valid());
-        !self.label.as_ref().is_empty()
+        !self.label.is_empty()
     }
 
     /// Return the empty or valid label.
@@ -61,7 +131,7 @@ where
     #[must_use]
     pub fn has_facet(&self) -> bool {
         debug_assert!(self.facet.is_valid());
-        !self.facet.as_ref().is_empty()
+        !self.facet.is_empty()
     }
 
     /// Return the empty or valid facet.
@@ -128,7 +198,7 @@ where
     F: Facet,
     L: Label,
     N: Name,
-    V: AsRef<str>,
+    V: Value,
 {
     /// Encode a tag as a string.
     ///
@@ -139,10 +209,10 @@ where
     /// Returns an [`fmt::Error`] if writing into the buffer fails.
     pub fn encode_into<W: fmt::Write>(&self, write: &mut W) -> fmt::Result {
         debug_assert!(self.is_valid());
-        let encoded_label = percent_encode(self.label().as_ref().as_bytes(), encoding::LABEL);
-        let encoded_facet = percent_encode(self.facet().as_ref().as_bytes(), encoding::FACET);
+        let encoded_label = percent_encode(self.label().as_str().as_bytes(), encoding::LABEL);
+        let encoded_facet = percent_encode(self.facet().as_str().as_bytes(), encoding::FACET);
         if !self.has_props() {
-            #[allow(clippy::redundant_else)]
+            #[expect(clippy::redundant_else)]
             if self.has_label() {
                 return write.write_fmt(format_args!("{encoded_facet}#{encoded_label}"));
             } else {
@@ -150,9 +220,9 @@ where
             }
         }
         let encoded_props_iter = self.props().iter().map(|Property { name, value }| {
-            let encoded_name = percent_encode(name.as_ref().as_bytes(), encoding::PROPS);
+            let encoded_name = percent_encode(name.as_str().as_bytes(), encoding::PROPS);
             let encoded_value = percent_encode(value.as_ref().as_bytes(), encoding::PROPS);
-            format_compact!("{encoded_name}={encoded_value}")
+            <V as StringTyped>::from_format_args(format_args!("{encoded_name}={encoded_value}"))
         });
         let encoded_props = itertools::join(encoded_props_iter, "&");
         if self.has_label() {
@@ -178,7 +248,7 @@ where
     F: Facet,
     L: Label,
     N: Name,
-    V: AsRef<str>,
+    V: Value,
 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         self.encode_into(f)
@@ -310,15 +380,15 @@ where
                     .map_err(Into::into)
                     .map_err(DecodeError::Parse)?;
                 let prop = Property {
-                    name: Name::from_cow_str(name),
-                    value: Value::from_cow_str(value),
+                    name: <N as StringTyped>::from_cow_str(name),
+                    value: <V as StringTyped>::from_cow_str(value),
                 };
                 props.push(prop);
             }
         }
         let tag = Self {
-            label: <L as Label>::from_cow_str(label),
-            facet: <F as Facet>::from_cow_str(facet),
+            label: <L as StringTyped>::from_cow_str(label),
+            facet: <F as StringTyped>::from_cow_str(facet),
             props,
         };
         if !tag.is_valid() {
@@ -461,7 +531,7 @@ where
     ///
     /// Tags with a date-like facet are sorted in descending order by their
     /// date-like suffix, i.e. newer dates are sorted before older dates.
-    #[allow(clippy::missing_panics_doc)]
+    #[expect(clippy::missing_panics_doc)]
     pub fn reorder_and_dedup(&mut self) {
         self.tags.sort_by(|lhs, rhs| {
             if rhs.facet().has_date_like_suffix() {

@@ -3,6 +3,6 @@
 
 //! Documentation and specification
 
-#![allow(rustdoc::invalid_rust_codeblocks)] // Do not interpret code blocks, e.g. license comments.
-#![allow(rustdoc::unportable_markdown)] // TODO!?
+#![expect(rustdoc::invalid_rust_codeblocks)] // Do not interpret code blocks, e.g. license comments.
+#![expect(rustdoc::unportable_markdown)] // TODO!?
 #![doc = include_str!("../README.md")]
