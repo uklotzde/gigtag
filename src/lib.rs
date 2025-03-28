@@ -52,7 +52,10 @@ impl StringTyped for String {
 }
 
 #[cfg(feature = "compact_str")]
-impl StringTyped for compact_str::CompactString {
+pub use compact_str;
+
+#[cfg(feature = "compact_str")]
+impl StringTyped for crate::compact_str::CompactString {
     fn from_str(from_str: &str) -> Self {
         from_str.into()
     }
@@ -63,7 +66,7 @@ impl StringTyped for compact_str::CompactString {
 
     fn from_format_args(from_format_args: fmt::Arguments<'_>) -> Self {
         // Copied from implementation of format_compact!();
-        compact_str::ToCompactString::to_compact_string(&from_format_args)
+        crate::compact_str::ToCompactString::to_compact_string(&from_format_args)
     }
 
     fn as_str(&self) -> &str {
@@ -72,7 +75,10 @@ impl StringTyped for compact_str::CompactString {
 }
 
 #[cfg(feature = "smol_str")]
-impl StringTyped for smol_str::SmolStr {
+pub use smol_str;
+
+#[cfg(feature = "smol_str")]
+impl StringTyped for crate::smol_str::SmolStr {
     fn from_str(from_str: &str) -> Self {
         from_str.into()
     }
@@ -83,7 +89,7 @@ impl StringTyped for smol_str::SmolStr {
 
     fn from_format_args(from_format_args: fmt::Arguments<'_>) -> Self {
         // Copied from implementation of format_smolstr!();
-        let mut w = smol_str::SmolStrBuilder::new();
+        let mut w = crate::smol_str::SmolStrBuilder::new();
         ::core::fmt::Write::write_fmt(&mut w, from_format_args)
             .expect("a formatting trait implementation returned an error");
         w.finish()
