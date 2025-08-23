@@ -4,5 +4,5 @@
 //! Documentation and specification
 
 #![expect(rustdoc::invalid_rust_codeblocks)] // Do not interpret code blocks, e.g. license comments.
-#![expect(rustdoc::unportable_markdown)] // TODO!?
+#![expect(clippy::doc_markdown)]
 #![doc = include_str!("../README.md")]
