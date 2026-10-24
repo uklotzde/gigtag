@@ -341,7 +341,7 @@ fn decoding_should_skip_empty_components() {
 #[test]
 fn decode_and_reencode_single_tag_without_leading_or_trailing_whitespace() {
     let decoded_tags = DecodedTags::decode_str("#Tag1");
-    assert!(decoded_tags.undecoded_prefix.is_empty());
+    assert_eq!(decoded_tags.undecoded_prefix, "");
     let reencoded = decoded_tags.reencode().unwrap();
     assert_eq!("#Tag1", reencoded);
 }
@@ -349,7 +349,7 @@ fn decode_and_reencode_single_tag_without_leading_or_trailing_whitespace() {
 #[test]
 fn decode_and_reencode_tags_exhaustive() {
     let decoded = DecodedTags::decode_str("  #Tag1\t#Tag%202  wishlist@20220526#Someone \t");
-    assert!(decoded.undecoded_prefix.is_empty());
+    assert_eq!(decoded.undecoded_prefix, "");
     let reencoded = decoded.reencode().unwrap();
     assert_eq!("#Tag1 #Tag%202 wishlist@20220526#Someone", reencoded);
 }

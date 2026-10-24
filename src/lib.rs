@@ -337,7 +337,7 @@ where
         }
         // The leading slash in the path from the dummy base URL needs to be skipped.
         let path = url.path();
-        debug_assert!(!path.is_empty());
+        debug_assert_ne!(path, "");
         debug_assert_eq!(path.trim(), path);
         debug_assert_eq!(path.as_bytes()[0], b'/');
         let facet_encoded = &url.path().as_bytes()[1..];
@@ -460,7 +460,7 @@ where
                     // First token without leading whitespace
                     ("", remainder)
                 };
-            debug_assert!(!next_token.is_empty());
+            debug_assert_ne!(next_token, "");
             debug_assert_eq!(next_token.trim(), next_token);
             if let Ok(tag) = Tag::decode_str(next_token) {
                 tags.push(tag);
