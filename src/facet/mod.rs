@@ -5,8 +5,8 @@
 
 use std::{fmt, sync::OnceLock};
 
+use jiff::{civil::Date, fmt::strtime};
 use regex::bytes::Regex;
-use time::{Date, format_description::FormatItem, macros::format_description};
 
 use crate::StringTyped;
 
@@ -53,11 +53,13 @@ pub fn try_split_into_prefix_and_date_like_suffix(facet: &str) -> Option<(&str, 
 pub fn try_split_into_prefix_and_parse_date_suffix(facet: &str) -> Option<(&str, Option<Date>)> {
     debug_assert!(is_valid(facet));
     let (prefix, date_suffix) = try_split_into_prefix_and_date_like_suffix(facet)?;
-    let date = Date::parse(date_suffix, DATE_LIKE_SUFFIX_FORMAT).ok();
+    let date = strtime::parse(DATE_LIKE_SUFFIX_FORMAT, date_suffix)
+        .and_then(|t| t.to_date())
+        .ok();
     (prefix, date).into()
 }
 
-const DATE_LIKE_SUFFIX_FORMAT: &[FormatItem<'static>] = format_description!("@[year][month][day]");
+const DATE_LIKE_SUFFIX_FORMAT: &str = "@%Y%m%d";
 
 // @yyyyMMdd
 const DATE_LIKE_SUFFIX_LEN: usize = 1 + 8;
@@ -92,8 +94,8 @@ pub fn has_invalid_date_like_suffix(facet: &str) -> bool {
     invalid_date_like_suffix_regex().is_match(facet.as_bytes())
 }
 
-fn format_date_like_suffix(date: Date) -> Result<String, time::error::Format> {
-    date.format(DATE_LIKE_SUFFIX_FORMAT)
+fn format_date_like_suffix(date: Date) -> Result<String, jiff::Error> {
+    strtime::format(DATE_LIKE_SUFFIX_FORMAT, date)
 }
 
 /// Common trait for facets
@@ -106,7 +108,7 @@ pub trait Facet: StringTyped + Default + PartialEq + Ord {
     /// # Errors
     ///
     /// Returns an error if formatting of the given `date` fails.
-    fn from_prefix_with_date_suffix(prefix: &str, date: Date) -> Result<Self, time::error::Format> {
+    fn from_prefix_with_date_suffix(prefix: &str, date: Date) -> Result<Self, jiff::Error> {
         let suffix = format_date_like_suffix(date)?;
         Ok(Self::from_format_args(format_args!("{prefix}{suffix}")))
     }
@@ -122,7 +124,7 @@ pub trait Facet: StringTyped + Default + PartialEq + Ord {
     fn from_prefix_args_with_date_suffix(
         prefix_args: fmt::Arguments<'_>,
         date: Date,
-    ) -> Result<Self, time::error::Format> {
+    ) -> Result<Self, jiff::Error> {
         let suffix = format_date_like_suffix(date)?;
         Ok(Self::from_format_args(format_args!(
             "{prefix_args}{suffix}"

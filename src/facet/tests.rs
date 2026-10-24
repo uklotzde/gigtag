@@ -1,13 +1,13 @@
 // SPDX-FileCopyrightText: The gigtag authors
 // SPDX-License-Identifier: MPL-2.0
 
-use time::Date;
+use jiff::civil::Date;
 
 use crate::{Facet as _, StringTyped};
 
 #[test]
 fn try_split_into_prefix_and_date_like_suffix_should_accept_and_preserve_invalid_whitespace() {
-    let date = Date::from_calendar_date(2022, time::Month::June, 25).unwrap();
+    let date = Date::constant(2022, 6, 25);
     let facet = <String as StringTyped>::from_str("@20220625");
     assert_eq!(
         ("", Some(date)),
