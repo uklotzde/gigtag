@@ -14,7 +14,7 @@ use crate::StringTyped;
 /// An empty facet is valid.
 #[must_use]
 pub fn is_valid(facet: &str) -> bool {
-    facet.trim() == facet && facet.as_bytes().first() != Some(&b'/')
+    crate::is_valid_component(facet)
 }
 
 /// Check if the given facet is empty.

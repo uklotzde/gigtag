@@ -10,7 +10,7 @@ use crate::StringTyped;
 /// An empty name is valid.
 #[must_use]
 pub fn is_name_valid(name: &str) -> bool {
-    name.trim() == name && name.as_bytes().first() != Some(&b'/')
+    crate::is_valid_component(name)
 }
 
 /// Check if the given name is empty.

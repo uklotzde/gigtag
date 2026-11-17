@@ -10,7 +10,7 @@ use crate::StringTyped;
 /// An empty label is valid.
 #[must_use]
 pub fn is_valid(label: &str) -> bool {
-    label.trim() == label && label.as_bytes().first() != Some(&b'/')
+    crate::is_valid_component(label)
 }
 
 /// Check if the given label is empty.

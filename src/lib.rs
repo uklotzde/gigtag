@@ -100,6 +100,14 @@ impl StringTyped for crate::smol_str::SmolStr {
     }
 }
 
+/// Check if the given label, facet, or property name is valid.
+///
+/// All components share the same constraints: No leading or trailing
+/// whitespace and no leading slash `/`. An empty string is valid.
+fn is_valid_component(component: &str) -> bool {
+    component.trim() == component && !component.starts_with('/')
+}
+
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 /// A tag
 pub struct Tag<F, L, N, V> {
