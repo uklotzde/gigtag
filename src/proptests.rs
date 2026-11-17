@@ -48,15 +48,13 @@ fn date_like_suffix() -> impl Strategy<Value = String> {
     "[0-9]{8}".prop_map(|digits| format!("@{digits}"))
 }
 
-/// TODO: Known bugs, these facets do not survive an encode/decode round trip.
+/// TODO: Known bug, these facets do not survive an encode/decode round trip.
 ///
-/// The URL parser removes dot segments `.` and `..` from the path and
-/// treats backslashes `\` like slashes `/`.
+/// The URL parser removes dot segments `.` and `..` from the path.
 fn is_affected_by_url_parsing(facet: &str) -> bool {
-    facet.contains('\\')
-        || facet
-            .split('/')
-            .any(|segment| matches!(segment, "." | ".."))
+    facet
+        .split('/')
+        .any(|segment| matches!(segment, "." | ".."))
 }
 
 fn valid_facet() -> impl Strategy<Value = String> {

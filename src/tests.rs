@@ -581,3 +581,27 @@ fn decode_facet_with_unencoded_colon_after_slash() {
     assert_eq!("a/b:c", tag.facet());
     assert_eq!("a/b%3Ac#label", tag.encode());
 }
+
+#[test]
+fn encode_and_decode_facet_with_backslashes() {
+    for facet in ["\\", "\\a", "a\\", "\\\\", "a\\b", "a/\\", "\\b@20220625"] {
+        let tag = Tag {
+            label: "label".into(),
+            facet: facet.into(),
+            ..Default::default()
+        };
+        let encoded = tag.encode();
+        assert!(!encoded.contains('\\'), "{encoded}");
+        assert_eq!(tag, encoded.parse().unwrap(), "{encoded}");
+    }
+}
+
+#[test]
+fn decode_should_reject_input_with_a_leading_backslash() {
+    // The URL parser treats a leading backslash like a leading slash
+    for encoded in ["\\", "\\a", "\\#label", "\\a#label", "\\?a=b#label"] {
+        assert!(Tag::decode_str(encoded).is_err(), "{encoded:?}");
+    }
+    // Previously encoded tags with a backslash that is not leading are still decoded
+    assert_eq!("a\\b", "a\\b#label".parse::<Tag>().unwrap().facet());
+}

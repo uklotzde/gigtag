@@ -217,7 +217,10 @@ mod encoding {
 
     /// The colon `:` is added to prevent that a facet prefix is
     /// interpreted as the URL scheme, e.g. `genre` in `genre:house`.
-    pub(super) const FACET: &AsciiSet = &PATH.add(b':');
+    ///
+    /// The backslash `\` is added, because the URL parser treats
+    /// it like a slash `/` at the start of the path.
+    pub(super) const FACET: &AsciiSet = &PATH.add(b':').add(b'\\');
 }
 
 impl<F, L, N, V> Tag<F, L, N, V>
@@ -324,9 +327,10 @@ where
         if encoded.is_empty() {
             return Err(DecodeError::Parse(anyhow!("empty encoded input")));
         }
-        if encoded.starts_with('/') {
+        // The URL parser treats a leading backslash like a leading slash.
+        if encoded.starts_with(['/', '\\']) {
             return Err(DecodeError::Parse(anyhow!(
-                "encoded input starts with leading slash `/`"
+                "encoded input starts with leading slash `/` or backslash `\\`"
             )));
         }
         let base_url = &*DUMMY_BASE_URL_WITH_ABSOLUTE_PATH;
