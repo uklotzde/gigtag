@@ -11,223 +11,212 @@
 
 A lightweight, textual tagging system aimed at DJs for managing custom metadata.
 
-## Structure
+_Gig tags_ are short, URI-like tokens that are stored as plain text, e.g. in the metadata of audio
+files:
 
-A _gig tag_ is a flat structure with the following, pre-defined fields or components:
+```text
+Some comment #FloorFiller wishlist@20220625#For%20you audio-features?energy=0.78&valence=0.61
+```
 
-- Label
-- Facet (including an optional calendar date)
-- Prop(ertie)s
+This document specifies the format. The Rust crate implements it.
 
-All components are optional with the following restrictions:
+## Tag structure
 
-- A valid _gig tag_ must have a _label_ or a _facet_.
-- A valid _gig tag_ with only a facet and neither a label or props is valid, if the facet has a date
-  suffix
+A _gig tag_ consists of three optional components:
+
+- **Label**: free text, e.g. `For you`
+- **Facet**: an identifier, optionally with a calendar date, e.g. `wishlist@20220625`
+- **Properties** (_props_): a list of name/value pairs, e.g. `energy=0.78`
+
+A tag is valid if it has
+
+- a label, or
+- a facet together with props, or
+- a [date-like facet](#date-like-facets).
+
+A tag that consists only of a facet without a date, or only of props, is invalid.
+
+Labels, facets, and property names share the following rules:
+
+- They must not have leading or trailing whitespace.
+- They must not start with a slash `/`.
+
+An empty component is considered absent.
 
 ### Label
 
-A _label_ is a non-empty string that contains arbitrary text without leading/trailing whitespace.
-
-Labels are supposed to be edited by users and are displayed verbatim in the UI.
-
-#### Examples
+Labels contain arbitrary text. They are meant to be edited by users and displayed verbatim in the
+UI.
 
 | Label          | Comment                                     |
 | -------------- | ------------------------------------------- |
-| `Wishlist`     | a single word                               |
-| `FloorFiller`  | multiple words concatenated in _PascalCase_ |
-| `Floor Filler` | multiple words separated by whitespace      |
+| `Wishlist`     | A single word                               |
+| `FloorFiller`  | Multiple words concatenated in _PascalCase_ |
+| `Floor Filler` | Multiple words separated by whitespace      |
 
 ### Facet
 
-The same content rules that apply to _labels_ also apply to _facets_. Moreover facets must not start
-with a leading slash `/` character that would otherwise interfere with the serialization format (see
-below).
+Facets categorize, namespace, or group labels, or define the context of the associated properties.
+They are meant to be predefined identifiers that are neither edited by users nor displayed directly
+in the UI.
 
-For the same reason facets must not contain the dot segments `.` or `..` when splitting them at
-slashes `/`, e.g. `a/./b` or `../a`. Dots that are part of a longer segment like in `.a`, `a.b`, or
-`...` are permitted.
-
-Facets serve a different semantic purpose than labels. They are used for categorizing, namespacing
-or grouping a set of labels or for defining the context of associated properties.
-
-Facets are supposed to represent pre-defined identifiers that are neither editable nor directly
-displayed in the UI.
+In addition to the shared rules, a facet must not contain the _dot segments_ `.` or `..` when
+splitting it at slashes `/`, e.g. `a/./b` or `../a`. Dots within a longer segment, like in `.a`,
+`a.b`, or `...`, are permitted.
 
 #### Date-like facets
 
-A reserved suffix could be used to encode a calendar date into facets.
+A facet that ends with an `@` character followed by 8 ASCII digits `0`-`9` is a _date-like facet_.
+The digits encode a calendar date in the format `yyyyMMdd` (ISO 8601), without a time zone.
 
-Facets that end with a `@` character followed by 8 decimal digits are considered as _date-like
-facets_. The digits are supposed to encode an ISO 8601 calendar date without a time zone in the
-format `yyyyMMdd`.
+- A facet is date-like even if the digits do not encode a valid date. This allows recognizing
+  date-like facets with a simple regular expression.
+- The `@` character must not be preceded by whitespace. This ensures that the prefix without the
+  date suffix is a valid facet on its own. Facets with a date-like suffix that is preceded by
+  whitespace are invalid.
 
-Facets considered as _date-like_ even if the 8 decimal digits do not encode a valid date. This less
-restrictive constraints have been chosen deliberately to allow using regular expressions for
-recognizing date-like facets.
+The following regular expressions can be used:
 
-The `@` character of the date suffix must follow the preceding text without any intermediate
-whitespace. Thus the remaining prefix after stripping the date-like suffix remains a valid facet.
+| Regular expression         | Matches                                                 |
+| -------------------------- | ------------------------------------------------------- |
+| `(^&vert;[^\s])@[0-9]{8}$` | Date-like facets                                        |
+| `[\s]+@[0-9]{8}$`          | Invalid facets with a date-like suffix after whitespace |
 
-The following regular expressions could be used:
+Use `[0-9]` instead of `\d`, which also matches non-ASCII digits in some regex engines.
 
-| Regex                      | Description                                                     |
-| -------------------------- | --------------------------------------------------------------- |
-| `(^&vert;[^\s])@[0-9]{8}$` | Recognize date-like facets                                      |
-| `[\s]+@[0-9]{8}$`          | Reject facets with a date-like suffix if preceded by whitespace |
+| Facet               | Valid | Comment                                                    |
+| ------------------- | ----- | ---------------------------------------------------------- |
+| `spotify`           | yes   | Plain facet, e.g. for properties related to Spotify        |
+| `@20220625`         | yes   | Date-like facet without a prefix, denotes 2022-06-25       |
+| `wishlist@20220625` | yes   | Date-like facet with the prefix `wishlist`                 |
+| `@00000000`         | yes   | Date-like facet with an invalid date                       |
+| `abc xyz@99999999`  | yes   | Date-like facet with the prefix `abc xyz` and invalid date |
+| `played @20220625`  | no    | Date-like suffix is preceded by whitespace                 |
+| `a/../b`            | no    | Contains the dot segment `..`                              |
 
-Only the ASCII digits `0`-`9` are permitted. Note that `\d` might also match non-ASCII digits,
-depending on the regex engine.
+### Properties
 
-#### Valid examples
+Properties are an ordered list of name/value pairs.
 
-| Facet               | Description                                                                                      |
-| ------------------- | ------------------------------------------------------------------------------------------------ |
-| `spotify`           | a tag for encoding properties related to Spotify                                                 |
-| `@20220625`         | date-like facet without a prefix that denotes the calendar day 2022-06-25 in any time zone       |
-| `wishlist@20220625` | date-like facet with prefix `wishlist` that denotes the calendar day 2022-06-25 in any time zone |
-| `@00000000`         | date-like facet without a prefix and an invalid date                                             |
-| `abc xyz@99999999`  | date-like facet with prefix `abc xyz` and an invalid date                                        |
+- Names must not be empty. Duplicate names are permitted.
+- Values are arbitrary text and may be empty.
 
-#### Invalid examples
+Applications interpret names and values in their own context, which can be defined by the facet.
 
-| Facet              | Description                                                                                      |
-| ------------------ | ------------------------------------------------------------------------------------------------ |
-| `played @20220625` | invalid date-like facet with a prefix containing trailing whitespace before the date-like suffix |
-
-### Prop(ertie)s
-
-Custom _properties_ could be attached to tags, abbreviated as _props_.
-
-Properties are represented as a non-empty, ordered _list_ of name/value pairs.
-
-_Names_ are non-empty strings that contain arbitrary text without leading/trailing whitespace. There
-are no restrictions regarding the uniqueness of names, i.e. duplicate names are permitted.
-
-_Values_ are arbitrary strings without any restrictions. Empty values are permitted.
-
-Applications are responsible for interpreting the names and values in their respective context.
-Facets could be used for defining this context.
-
-## Serialization
+## Encoding
 
 ### Single tag
 
-Individual tags are encoded as
-[URI](https://en.wikipedia.org/wiki/Uniform_Resource_Identifier#Syntax)s:
+A tag is encoded as a relative
+[URI reference](https://en.wikipedia.org/wiki/Uniform_Resource_Identifier#Syntax) without a scheme
+and without an authority:
 
-> `URI       = scheme ":" ["//" authority] path ["?" query] ["#" fragment]` >
-> `authority = [userinfo "@"] host [":" port]`
+```text
+facet?name1=value1&name2=value2#label
+```
 
-Only the _path_, _query_, and _fragment_ components could be present. All other components must be
-absent, i.e. the URI string must neither contain a _scheme_ nor an _authority_ component.
+| Tag component | URI component | Percent-encoded characters                                              |
+| ------------- | ------------- | ----------------------------------------------------------------------- |
+| Facet         | Path          | Space `"` `#` `%` `:` `<` `>` `?` `\` `` ` `` `{` `}`                   |
+| Props         | Query         | Space `"` `#` `%` `&` `<` `>` `=` (names and values encoded separately) |
+| Label         | Fragment      | Space `"` `%` `<` `>` `` ` ``                                           |
 
-The following table defines the component mapping:
+In addition, all ASCII control characters (`0x00`-`0x1F` and `0x7F`), including tabs and newlines,
+and all non-ASCII characters are [percent-encoded](https://en.wikipedia.org/wiki/Percent-encoding)
+as UTF-8 bytes. The character sets are derived from the
+[WHATWG URL Standard](https://url.spec.whatwg.org/#percent-encoded-bytes).
 
-| Tag component      | URI component                                          | Percent-encoded character set                                                                               |
-| ------------------ | ------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
-| label              | [fragment](https://en.wikipedia.org/wiki/URI_fragment) | [_fragment percent-encode set_](https://url.spec.whatwg.org/#fragment-percent-encode-set) + `'%'`           |
-| facet              | path                                                   | [_path percent-encode set_](https://url.spec.whatwg.org/#path-percent-encode-set) + `'%'` + `':'` + `'\'`   |
-| props (name/value) | [query](https://en.wikipedia.org/wiki/Query_string)    | [_query percent-encode set_](https://url.spec.whatwg.org/#query-percent-encode-set) + `'%'` + `'&'` + `'='` |
+When decoding a tag:
 
-Tags, respective their URIs, are serialized as text and the components are
-[percent-encoded](https://en.wikipedia.org/wiki/Percent-encoding) according to RFC 2396/1738. The
-above table specifies which characters need to be encoded for each tag component. Property
-names/values are encoded separately.
-
-Empty components are considered as absent when parsing a _gig tag_ from an URI string.
-
-ASCII control characters, including tab and newline characters, are always percent-encoded. URI
-strings that contain unencoded control characters are invalid.
+- Empty components are considered absent, e.g. `?#MyTag` is equivalent to `#MyTag`.
+- A property without `=` has an empty value, e.g. `name` in `facet?name`.
+- A `+` is kept as is and does not denote a space.
+- Unencoded control characters are rejected.
 
 #### Examples
 
-The following examples show variations of the encoded string with empty components that are ignored
-when decoding the URI.
-
-| Encoded                                                                                 | Facet               | Date       | Label     | Props: Names          | Props: Values    |
+| Encoded                                                                                 | Facet               | Date       | Label     | Prop names            | Prop values      |
 | --------------------------------------------------------------------------------------- | ------------------- | ---------- | --------- | --------------------- | ---------------- |
 | `#MyTag`<br>`?#MyTag`                                                                   |                     |            | `MyTag`   |                       |                  |
 | `wishlist@20220625#For%20you`                                                           | `wishlist@20220625` | 2022-06-25 | `For you` |                       |                  |
-| `played@20220625`<br>`played@20220625?`<br>`played20220625#`<br>`played@20220625?#`     | `played@20220625`   | 2022-06-25 |           |                       |                  |
+| `played@20220625`<br>`played@20220625?`<br>`played@20220625#`<br>`played@20220625?#`    | `played@20220625`   | 2022-06-25 |           |                       |                  |
 | `audio-features?energy=0.78&valence=0.61`<br>`audio-features?energy=0.78&valence=0.61#` | `audio-features`    |            |           | `energy`<br>`valence` | `0.78`<br>`0.61` |
 
-#### Examples (invalid)
+#### Invalid examples
 
-The following tokens do not represent valid _gig tags_:
-
-| Encoded                      | Comment                                                            |
-| ---------------------------- | ------------------------------------------------------------------ |
-| `https://#MyTag`             | URL scheme/authority are present                                   |
-| `genre:house#MyTag`          | URL scheme `genre` is present, the colon must be percent-encoded   |
-| `My%20Tag`                   | Only a facet without a date, neither a label nor props             |
-| `/my-facet#Label`            | Facet starts with a `/`                                            |
-| `\my-facet#Label`            | Facet starts with a `\`, which must be percent-encoded             |
-| `a/../b#Label`               | Facet contains the dot segment `..`                                |
-| `a/%2E#Label`                | Facet contains the percent-encoded dot segment `.`                 |
-| `wishlist%20@20220625#Label` | Date suffix in facet is prefixed by whitespace                     |
-| `?=val#Label`                | Empty property name                                                |
-| `?name=my+val#My label`      | Special characters like `+` and whitespace are not percent-encoded |
-| `#`                          | Empty label is considered as absent                                |
-| `?`                          | Empty facet and props are considered as absent                     |
-| `?#`                         | Empty facet, props, and label are considered as absent             |
+| Encoded                         | Reason                                                            |
+| ------------------------------- | ----------------------------------------------------------------- |
+| `#`<br>`?`<br>`?#`              | All components are empty                                          |
+| `My%20Tag`                      | Only a facet without a date                                       |
+| `?name=value`                   | Only props without a facet                                        |
+| `?=value#MyTag`                 | Empty property name                                               |
+| `https://#MyTag`                | Contains a scheme and an authority                                |
+| `genre:house#MyTag`             | `genre` is parsed as a scheme, the colon must be encoded as `%3A` |
+| `/my-facet#MyTag`               | Facet starts with a slash `/`                                     |
+| `\my-facet#MyTag`               | Facet starts with a backslash `\`, which must be encoded as `%5C` |
+| `a/../b#MyTag`<br>`a/%2E#MyTag` | Facet contains a dot segment, also if percent-encoded             |
+| `wishlist%20@20220625#MyTag`    | Date-like suffix of the facet is preceded by whitespace           |
 
 ### Multiple tags
 
 #### Formatting
 
-Multiple tags are formatted and stored as text by concatenating the corresponding, encoded URIs.
-Subsequent URIs are separated by whitespace, e.g. a single ASCII space character.
+Multiple tags are encoded individually and joined by whitespace, usually a single space.
 
-##### Retro-fitting
-
-Often it is not possible to store the encoded _gig tags_ in a reserved field. In this case _gig
-tags_ could appended to any text field by delimiting them with arbitrary whitespace from the
-preceding text.
-
-Use either the _newline_ character (`'\n'` / ASCII `0x0A`) for maximum safety or the _space_
-character (`' '` / ASCII `0x20`) for maximum compatibility. Unfortunately, some tag editors like
-_QuodLibet_ (version 4.6.0) do not support multi-line text in file tags very well.
+Encoded tags can also be appended to any existing text, separated from it by whitespace. This allows
+storing them in fields that are not reserved for _gig tags_, see [Storage](#storage).
 
 #### Parsing
 
-Text is split into tokens that are separated by whitespace. Parsing starts with the last token and
-continues from back to front. It stops when encountering a token that could not be parsed as a valid
-_gig tag_ or at the first _newline_ character (`'\n'` / ASCII `0x0A`).
+The text is split into tokens at whitespace characters. Tokens are decoded from the end of the text
+towards its start. Decoding stops at the first token that is not a valid _gig tag_ or at a newline
+character `\n`, whichever comes first.
 
-##### Retro-fitting
+Tags are therefore only recognized after the last newline, and unencoded whitespace in a tag splits
+it into multiple tokens: `#My label` is parsed as the two tokens `#My` and `label`. The token
+`label` is not a valid tag, so neither token is decoded.
 
-The text before the first valid _gig tag_ is preserved as _undecoded prefix_. This might include
-trailing whitespace.
+#### Undecoded prefix
 
-When re-encoding the _gig tags_ the _undecoded prefix_ that was captured during parsing must be
-prepended to the re-encoded _gig tags_ string. This rule ensures that only whitespace characters
-between and after valid _gig tags_ could get lost during a decode/re-encode roundtrip, i.e. when
-unintentionally parsing arbitrary words from the preceding text as valid _gig tags_ (false
-positives).
+The text before the first decoded tag is preserved as the _undecoded prefix_, including any trailing
+whitespace. When re-encoding, the tags are appended to the undecoded prefix, separated by a single
+space. A space is also inserted after the prefix if it does not end with whitespace.
+
+Only whitespace between and after the tags can change during such a round trip. Words at the end of
+the preceding text that happen to be valid tags are decoded as tags (false positives), but they are
+re-encoded unchanged.
+
+| Text                  | Undecoded prefix           | Tags       | Re-encoded            |
+| --------------------- | -------------------------- | ---------- | --------------------- |
+| `Some comment #A #B`  | `Some comment` and a space | `#A`, `#B` | `Some comment #A #B`  |
+| `Some comment\n#A #B` | `Some comment\n`           | `#A`, `#B` | `Some comment\n#A #B` |
+| `#A\n#B`              | `#A\n`                     | `#B`       | `#A\n#B`              |
+| `#A\t#B`              | (empty)                    | `#A`, `#B` | `#A #B`               |
 
 ## Storage
 
-### File metadata
+### Audio files
 
-The text with the encoded _gig tags_ is appended (separated by whitespace) to the
-[_Grouping_](https://picard-docs.musicbrainz.org/en/appendices/tag_mapping.html#grouping-3) field of
-audio files:
+Append the encoded tags to the
+[_Grouping_](https://picard-docs.musicbrainz.org/en/appendices/tag_mapping.html#grouping-3) field,
+separated by whitespace from any existing content:
 
-- ID3v2: `GRP1` (primary/preferred) / `TIT11` (traditional/fallback)
-- Vorbis: `GROUPING`
+- ID3v2: `GRP1` (preferred) or `TIT1` (traditional)
+- Vorbis comments: `GROUPING`
 - MPEG-4: `©grp`
 
-Some applications like [Engine DJ](https://enginedj.com/) do not support this file tag. In this case
-the encoded _gig tags_ should be appended to the
+Some applications, e.g. [Engine DJ](https://enginedj.com/), do not support this field. Use the
 [_Comment_](https://picard-docs.musicbrainz.org/en/appendices/tag_mapping.html#comment-4) field
 instead.
 
+Separate the tags from the existing content with a newline `\n` for maximum safety, because decoding
+stops at the last newline. Use a space for maximum compatibility, because some tag editors, e.g.
+_Quod Libet_ 4.6.0, do not handle multi-line text well.
+
 ## License
 
-Licensed under the Mozilla Public License 2.0 (MPL-2.0) (see [MPL-2.0.txt](LICENSES/MPL-2.0.txt) or
-<https://www.mozilla.org/MPL/2.0/>).
+Licensed under the Mozilla Public License 2.0 (MPL-2.0), see [MPL-2.0.txt](LICENSES/MPL-2.0.txt) or
+<https://www.mozilla.org/MPL/2.0/>.
 
 Permissions of this copyleft license are conditioned on making available source code of licensed
 files and modifications of those files under the same license (or in certain cases, one of the GNU
@@ -240,8 +229,8 @@ terms and without source code for files added in the larger work.
 Any contribution intentionally submitted for inclusion in the work by you shall be licensed under
 the Mozilla Public License 2.0 (MPL-2.0).
 
-It is required to add the following header with the corresponding
-[SPDX short identifier](https://spdx.dev/ids/) to the top of each file:
+Add the following header with the corresponding [SPDX short identifier](https://spdx.dev/ids/) to
+the top of each file:
 
 ```rust
 // SPDX-License-Identifier: MPL-2.0
