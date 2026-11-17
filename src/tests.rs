@@ -605,3 +605,36 @@ fn decode_should_reject_input_with_a_leading_backslash() {
     // Previously encoded tags with a backslash that is not leading are still decoded
     assert_eq!("a\\b", "a\\b#label".parse::<Tag>().unwrap().facet());
 }
+
+#[test]
+fn decode_should_reject_input_with_control_characters() {
+    for encoded in [
+        "a\nb#label",
+        "a\tb#label",
+        "a\rb#label",
+        "#a\tb",
+        "facet?a=b\nc#label",
+        "\0#label",
+        "#label\0",
+        "\u{1}a#label",
+        "a\u{1}#label",
+        "a\u{7f}#label",
+    ] {
+        assert!(Tag::decode_str(encoded).is_err(), "{encoded:?}");
+    }
+    // Control characters are always percent-encoded
+    let tag = Tag {
+        label: "a\nb\0".into(),
+        facet: "c\td\u{7f}".into(),
+        props: vec![Property {
+            name: "e\u{1}".into(),
+            value: "f\rg".into(),
+        }],
+    };
+    let encoded = tag.encode();
+    assert!(
+        !encoded.contains(|c: char| c.is_ascii_control()),
+        "{encoded:?}"
+    );
+    assert_eq!(tag, encoded.parse().unwrap());
+}

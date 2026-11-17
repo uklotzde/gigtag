@@ -137,6 +137,8 @@ proptest! {
         // Must not panic
         if let Ok(tag) = Tag::decode_str(&input) {
             prop_assert!(tag.is_valid());
+            // Unencoded control characters would be dropped silently by the URL parser
+            prop_assert!(!input.contains(|c: char| c.is_ascii_control()), "{input:?}");
             let redecoded = Tag::decode_str(&tag.encode()).ok();
             prop_assert_eq!(Some(tag), redecoded, "{:?}", input);
         }

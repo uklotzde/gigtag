@@ -327,6 +327,14 @@ where
         if encoded.is_empty() {
             return Err(DecodeError::Parse(anyhow!("empty encoded input")));
         }
+        // The URL parser silently removes ASCII tab and newline characters
+        // and leading/trailing control characters. All control characters
+        // are percent-encoded when encoding a tag.
+        if encoded.contains(|c: char| c.is_ascii_control()) {
+            return Err(DecodeError::Parse(anyhow!(
+                "control character in encoded input"
+            )));
+        }
         // The URL parser treats a leading backslash like a leading slash.
         if encoded.starts_with(['/', '\\']) {
             return Err(DecodeError::Parse(anyhow!(

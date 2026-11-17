@@ -134,6 +134,9 @@ names/values are encoded separately.
 
 Empty components are considered as absent when parsing a _gig tag_ from an URI string.
 
+ASCII control characters, including tab and newline characters, are always percent-encoded. URI
+strings that contain unencoded control characters are invalid.
+
 #### Examples
 
 The following examples show variations of the encoded string with empty components that are ignored
