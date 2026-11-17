@@ -116,3 +116,17 @@ fn has_invalid_date_like_suffix() {
     assert!(!super::has_invalid_date_like_suffix("a@20220625"));
     assert!(!super::has_invalid_date_like_suffix("a 20220625"));
 }
+
+#[test]
+fn facets_with_dot_segments_are_invalid() {
+    for facet in [
+        ".", "..", "./a", "../a", "a/.", "a/..", "a/./b", "a/../b", "a//./b",
+    ] {
+        assert!(!super::is_valid(facet), "{facet}");
+    }
+    for facet in [
+        ".a", "a.", "...", "a/.b", "a/b..", "a/.../b", "%2E", "a/%2E%2E",
+    ] {
+        assert!(super::is_valid(facet), "{facet}");
+    }
+}

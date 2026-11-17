@@ -48,24 +48,13 @@ fn date_like_suffix() -> impl Strategy<Value = String> {
     "[0-9]{8}".prop_map(|digits| format!("@{digits}"))
 }
 
-/// TODO: Known bug, these facets do not survive an encode/decode round trip.
-///
-/// The URL parser removes dot segments `.` and `..` from the path.
-fn is_affected_by_url_parsing(facet: &str) -> bool {
-    facet
-        .split('/')
-        .any(|segment| matches!(segment, "." | ".."))
-}
-
 fn valid_facet() -> impl Strategy<Value = String> {
     (valid_component(12), prop::option::of(date_like_suffix())).prop_filter_map(
         "invalid facet",
         |(prefix, suffix)| {
             let facet = prefix + suffix.as_deref().unwrap_or_default();
-            (facet::is_valid(&facet)
-                && !facet::has_invalid_date_like_suffix(&facet)
-                && !is_affected_by_url_parsing(&facet))
-            .then_some(facet)
+            (facet::is_valid(&facet) && !facet::has_invalid_date_like_suffix(&facet))
+                .then_some(facet)
         },
     )
 }

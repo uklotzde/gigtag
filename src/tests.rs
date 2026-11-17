@@ -638,3 +638,41 @@ fn decode_should_reject_input_with_control_characters() {
     );
     assert_eq!(tag, encoded.parse().unwrap());
 }
+
+#[test]
+fn decode_should_reject_dot_segments_in_facet() {
+    for encoded in [
+        ".#label",
+        "..#label",
+        "./a#label",
+        "a/../b#label",
+        "a/./b?n=v",
+        "%2E#label",
+        "%2e%2E#label",
+        ".%2E/a#label",
+        "a/%2E%2e#label",
+        "../a@20220625",
+    ] {
+        assert!(Tag::decode_str(encoded).is_err(), "{encoded:?}");
+    }
+    // Dots in the label or properties are not affected
+    let tag = "a.b/c..?..=.#..".parse::<Tag>().unwrap();
+    assert_eq!("a.b/c..", tag.facet());
+    assert_eq!("..", tag.label());
+    assert_eq!("..", tag.props()[0].name());
+    assert_eq!(".", tag.props()[0].value());
+    // Encoded percent characters are not decoded twice
+    let tag = "%252E#label".parse::<Tag>().unwrap();
+    assert_eq!("%2E", tag.facet());
+    assert_eq!("%252E#label", tag.encode());
+}
+
+#[test]
+fn tag_with_dot_segments_in_facet_is_invalid() {
+    let tag = Tag {
+        label: "label".into(),
+        facet: "a/../b".into(),
+        ..Default::default()
+    };
+    assert!(!tag.is_valid());
+}

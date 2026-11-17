@@ -45,6 +45,10 @@ The same content rules that apply to _labels_ also apply to _facets_. Moreover f
 with a leading slash `/` character that would otherwise interfere with the serialization format (see
 below).
 
+For the same reason facets must not contain the dot segments `.` or `..` when splitting them at
+slashes `/`, e.g. `a/./b` or `../a`. Dots that are part of a longer segment like in `.a`, `a.b`, or
+`...` are permitted.
+
 Facets serve a different semantic purpose than labels. They are used for categorizing, namespacing
 or grouping a set of labels or for defining the context of associated properties.
 
@@ -160,6 +164,8 @@ The following tokens do not represent valid _gig tags_:
 | `My%20Tag`                   | Only a facet without a date, neither a label nor props             |
 | `/my-facet#Label`            | Facet starts with a `/`                                            |
 | `\my-facet#Label`            | Facet starts with a `\`, which must be percent-encoded             |
+| `a/../b#Label`               | Facet contains the dot segment `..`                                |
+| `a/%2E#Label`                | Facet contains the percent-encoded dot segment `.`                 |
 | `wishlist%20@20220625#Label` | Date suffix in facet is prefixed by whitespace                     |
 | `?=val#Label`                | Empty property name                                                |
 | `?name=my+val#My label`      | Special characters like `+` and whitespace are not percent-encoded |

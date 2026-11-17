@@ -341,6 +341,14 @@ where
                 "encoded input starts with leading slash `/` or backslash `\\`"
             )));
         }
+        // The URL parser removes dot segments from the path, which
+        // must be detected before parsing the input.
+        let facet_encoded = encoded.split(['?', '#']).next().unwrap_or_default();
+        if facet::has_encoded_dot_segment(facet_encoded) {
+            return Err(DecodeError::Parse(anyhow!(
+                "dot segment `.` or `..` in encoded facet '{facet_encoded}'"
+            )));
+        }
         let base_url = &*DUMMY_BASE_URL_WITH_ABSOLUTE_PATH;
         let parse_options = Url::options().base_url(Some(base_url));
         let url = parse_options

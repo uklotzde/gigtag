@@ -11,10 +11,31 @@ use crate::StringTyped;
 
 /// Check if the given facet is valid.
 ///
-/// An empty facet is valid.
+/// An empty facet is valid. Facets must not contain the dot segments
+/// `.` and `..` when split at slashes `/`.
 #[must_use]
 pub fn is_valid(facet: &str) -> bool {
-    crate::is_valid_component(facet)
+    crate::is_valid_component(facet) && !has_dot_segment(facet)
+}
+
+/// Check if any of the segments separated by slashes `/` is `.` or `..`.
+///
+/// The URL parser removes those segments from the path.
+fn has_dot_segment(facet: &str) -> bool {
+    facet
+        .split('/')
+        .any(|segment| matches!(segment, "." | ".."))
+}
+
+/// Check if any of the segments of the encoded facet is `.` or `..`.
+///
+/// The URL parser also removes percent-encoded dot segments like `%2E`
+/// from the path. These cannot be detected after parsing the URL.
+pub(crate) fn has_encoded_dot_segment(facet_encoded: &str) -> bool {
+    facet_encoded.split('/').any(|segment| {
+        let decoded = percent_encoding::percent_decode_str(segment);
+        decoded.clone().eq(*b".") || decoded.eq(*b"..")
+    })
 }
 
 /// Check if the given facet is empty.
