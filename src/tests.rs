@@ -537,3 +537,12 @@ fn valid_tags_should_roundtrip() {
         assert_eq!(tag, tag.encode().parse::<Tag>().unwrap(), "{encoded}");
     }
 }
+
+#[test]
+fn reorder_and_dedup_non_adjacent_tags_with_properties() {
+    let mut decoded =
+        DecodedTags::decode_str("f?p=1#a f?p=2#a f?p=1#a f#a f?p=2#a f?p=1&q=0#a f#a");
+    assert_eq!(7, decoded.tags.len());
+    decoded.reorder_and_dedup();
+    assert_eq!("f#a f?p=1#a f?p=1&q=0#a f?p=2#a", decoded.reencode());
+}
