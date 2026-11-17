@@ -8,12 +8,12 @@ use crate::{Facet as _, StringTyped};
 #[test]
 fn try_split_into_prefix_and_date_like_suffix_should_accept_and_preserve_invalid_whitespace() {
     let date = Date::constant(2022, 6, 25);
-    let facet = <String as StringTyped>::from_str("@20220625");
+    let facet = String::from_str_slice("@20220625");
     assert_eq!(
         ("", Some(date)),
         facet.try_split_into_prefix_and_parse_date_suffix().unwrap()
     );
-    let facet = <String as StringTyped>::from_str("a \tb c\n @20220625");
+    let facet = String::from_str_slice("a \tb c\n @20220625");
     assert_eq!(
         ("a \tb c\n ", Some(date)),
         facet.try_split_into_prefix_and_parse_date_suffix().unwrap()
@@ -22,7 +22,7 @@ fn try_split_into_prefix_and_date_like_suffix_should_accept_and_preserve_invalid
 
 #[test]
 fn try_split_into_prefix_and_date_like_suffix_should_accept_invalid_dates() {
-    let facet = <String as StringTyped>::from_str("@00000000");
+    let facet = String::from_str_slice("@00000000");
     assert_eq!(
         ("", "@00000000"),
         facet.try_split_into_prefix_and_date_like_suffix().unwrap()
@@ -31,7 +31,7 @@ fn try_split_into_prefix_and_date_like_suffix_should_accept_invalid_dates() {
         ("", None),
         facet.try_split_into_prefix_and_parse_date_suffix().unwrap()
     );
-    let facet = <String as StringTyped>::from_str("abc@99999999");
+    let facet = String::from_str_slice("abc@99999999");
     assert_eq!(
         ("abc", "@99999999"),
         facet.try_split_into_prefix_and_date_like_suffix().unwrap()
@@ -40,7 +40,7 @@ fn try_split_into_prefix_and_date_like_suffix_should_accept_invalid_dates() {
         ("abc", None),
         facet.try_split_into_prefix_and_parse_date_suffix().unwrap()
     );
-    let facet = <String as StringTyped>::from_str("abc @19700230");
+    let facet = String::from_str_slice("abc @19700230");
     assert_eq!(
         ("abc ", "@19700230"),
         facet.try_split_into_prefix_and_date_like_suffix().unwrap()

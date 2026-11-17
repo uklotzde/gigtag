@@ -17,7 +17,7 @@ fn empty_tag_is_invalid() {
 fn tag_with_only_a_label_is_valid() {
     assert!(
         Tag {
-            label: <String as StringTyped>::from_str("A label"),
+            label: String::from_str_slice("A label"),
             ..Default::default()
         }
         .is_valid()
@@ -28,7 +28,7 @@ fn tag_with_only_a_label_is_valid() {
 fn tag_with_only_a_date_like_facet_is_valid() {
     assert!(
         Tag {
-            facet: <String as StringTyped>::from_str("@01234567"),
+            facet: String::from_str_slice("@01234567"),
             ..Default::default()
         }
         .is_valid()
@@ -39,7 +39,7 @@ fn tag_with_only_a_date_like_facet_is_valid() {
 fn tag_with_only_a_non_date_like_facet_is_invalid() {
     assert!(
         !Tag {
-            facet: <String as StringTyped>::from_str("non-date-like-facet"),
+            facet: String::from_str_slice("non-date-like-facet"),
             ..Default::default()
         }
         .is_valid()
@@ -51,8 +51,8 @@ fn tag_with_only_properties_is_invalid() {
     assert!(
         !Tag {
             props: vec![Property {
-                name: <String as StringTyped>::from_str("name"),
-                value: <String as StringTyped>::from_str("value"),
+                name: String::from_str_slice("name"),
+                value: String::from_str_slice("value"),
             },],
             ..Default::default()
         }
@@ -64,10 +64,10 @@ fn tag_with_only_properties_is_invalid() {
 fn tag_with_only_a_non_date_like_facet_and_props_is_valid() {
     assert!(
         Tag {
-            facet: <String as StringTyped>::from_str("non-date-like-facet"),
+            facet: String::from_str_slice("non-date-like-facet"),
             props: vec![Property {
-                name: <String as StringTyped>::from_str("name"),
-                value: <String as StringTyped>::from_str("value"),
+                name: String::from_str_slice("name"),
+                value: String::from_str_slice("value"),
             },],
             ..Default::default()
         }
@@ -77,20 +77,19 @@ fn tag_with_only_a_non_date_like_facet_and_props_is_valid() {
 
 #[test]
 fn encode_decode() {
-    let label = <String as StringTyped>::from_str("My Tag (foo+bar)");
+    let label = String::from_str_slice("My Tag (foo+bar)");
     let encoded_label = "My%20Tag%20(foo+bar)";
-    let facet = <String as StringTyped>::from_str(
-        "a/date//facet+with ?special#characters and whitespace@20220625",
-    );
+    let facet =
+        String::from_str_slice("a/date//facet+with ?special#characters and whitespace@20220625");
     let encoded_facet = "a/date//facet+with%20%3Fspecial%23characters%20and%20whitespace@20220625";
     let props = vec![
         Property {
-            name: <String as StringTyped>::from_str("prop?\n \t1"),
-            value: <String as StringTyped>::from_str("Hello, World!"),
+            name: String::from_str_slice("prop?\n \t1"),
+            value: String::from_str_slice("Hello, World!"),
         },
         Property {
-            name: <String as StringTyped>::from_str("prop #2"),
-            value: <String as StringTyped>::from_str("0.123"),
+            name: String::from_str_slice("prop #2"),
+            value: String::from_str_slice("0.123"),
         },
     ];
     let encoded_props = "prop?%0A%20%091=Hello,%20World!&prop%20%232=0.123";
@@ -137,13 +136,13 @@ fn encode_decode() {
 
 #[test]
 fn encode_decode_reserved_and_special_characters() {
-    let label = <String as StringTyped>::from_str("!#$&'()*+,/:;=?@[]%Label~!#$&'()*+,/:;=?@[]");
+    let label = String::from_str_slice("!#$&'()*+,/:;=?@[]%Label~!#$&'()*+,/:;=?@[]");
     let encoded_label = "!#$&'()*+,/:;=?@[]%25Label~!#$&'()*+,/:;=?@[]";
-    let facet = <String as StringTyped>::from_str("!#$&'()*+,/:;=?@[]%Facet~!#$&'()*+,/:;=?@[]");
+    let facet = String::from_str_slice("!#$&'()*+,/:;=?@[]%Facet~!#$&'()*+,/:;=?@[]");
     let encoded_facet = "!%23$&'()*+,/:;=%3F@[]%25Facet~!%23$&'()*+,/:;=%3F@[]";
     let props = vec![Property {
-        name: <String as StringTyped>::from_str("!#$&'()*+,/:;=?@[]%Name~!#$&'()*+,/:;=?@[]"),
-        value: <String as StringTyped>::from_str("!#$&'()*+,/:;=?@[]%Value~!#$&'()*+,/:;=?@[]"),
+        name: String::from_str_slice("!#$&'()*+,/:;=?@[]%Name~!#$&'()*+,/:;=?@[]"),
+        value: String::from_str_slice("!#$&'()*+,/:;=?@[]%Value~!#$&'()*+,/:;=?@[]"),
     }];
     let encoded_props = "!%23$%26'()*+,/:;%3D?@[]%25Name~!%23$%26'()*+,/:;%3D?@[]=!%23$%26'()*+,/:\
                          ;%3D?@[]%25Value~!%23$%26'()*+,/:;%3D?@[]";
@@ -269,7 +268,7 @@ fn parse_from_str_allows_leading_or_trailing_whitespace() {
 
 #[test]
 fn tags_with_date_facets() {
-    let facet_with_date_only = <String as StringTyped>::from_str("@20220625");
+    let facet_with_date_only = String::from_str_slice("@20220625");
     let tag = Tag {
         facet: facet_with_date_only,
         ..Default::default()
@@ -277,7 +276,7 @@ fn tags_with_date_facets() {
     assert!(tag.is_valid());
     assert!(tag.facet().has_date_like_suffix());
 
-    let facet_with_text_and_date = <String as StringTyped>::from_str("text@20220625");
+    let facet_with_text_and_date = String::from_str_slice("text@20220625");
     let tag = Tag {
         facet: facet_with_text_and_date,
         ..tag
@@ -285,7 +284,7 @@ fn tags_with_date_facets() {
     assert!(tag.is_valid());
     assert!(tag.facet().has_date_like_suffix());
 
-    let facet_without_date_suffix = <String as StringTyped>::from_str("20220625");
+    let facet_without_date_suffix = String::from_str_slice("20220625");
     let tag = Tag {
         facet: facet_without_date_suffix,
         ..tag

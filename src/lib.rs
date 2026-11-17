@@ -24,7 +24,7 @@ pub mod props;
 pub use self::props::{Name, Property, Value};
 
 pub trait StringTyped: Sized + AsRef<str> + fmt::Debug + fmt::Display {
-    fn from_str(from_str: &str) -> Self;
+    fn from_str_slice(s: &str) -> Self;
 
     fn from_cow_str(from_cow: Cow<'_, str>) -> Self;
 
@@ -34,8 +34,8 @@ pub trait StringTyped: Sized + AsRef<str> + fmt::Debug + fmt::Display {
 }
 
 impl StringTyped for String {
-    fn from_str(from_str: &str) -> Self {
-        from_str.to_owned()
+    fn from_str_slice(s: &str) -> Self {
+        s.to_owned()
     }
 
     fn from_cow_str(from_cow: Cow<'_, str>) -> Self {
@@ -56,8 +56,8 @@ pub use compact_str;
 
 #[cfg(feature = "compact_str")]
 impl StringTyped for crate::compact_str::CompactString {
-    fn from_str(from_str: &str) -> Self {
-        from_str.into()
+    fn from_str_slice(s: &str) -> Self {
+        s.into()
     }
 
     fn from_cow_str(from_cow: Cow<'_, str>) -> Self {
@@ -79,8 +79,8 @@ pub use smol_str;
 
 #[cfg(feature = "smol_str")]
 impl StringTyped for crate::smol_str::SmolStr {
-    fn from_str(from_str: &str) -> Self {
-        from_str.into()
+    fn from_str_slice(s: &str) -> Self {
+        s.into()
     }
 
     fn from_cow_str(from_cow: Cow<'_, str>) -> Self {
@@ -239,7 +239,7 @@ where
         let encoded_props_iter = self.props().iter().map(|Property { name, value }| {
             let encoded_name = percent_encode(name.as_str().as_bytes(), encoding::PROPS);
             let encoded_value = percent_encode(value.as_ref().as_bytes(), encoding::PROPS);
-            <V as StringTyped>::from_format_args(format_args!("{encoded_name}={encoded_value}"))
+            V::from_format_args(format_args!("{encoded_name}={encoded_value}"))
         });
         let encoded_props = itertools::join(encoded_props_iter, "&");
         if self.has_label() {
@@ -400,15 +400,15 @@ where
                     .map_err(Into::into)
                     .map_err(DecodeError::Parse)?;
                 let prop = Property {
-                    name: <N as StringTyped>::from_cow_str(name),
-                    value: <V as StringTyped>::from_cow_str(value),
+                    name: N::from_cow_str(name),
+                    value: V::from_cow_str(value),
                 };
                 props.push(prop);
             }
         }
         let tag = Self {
-            label: <L as StringTyped>::from_cow_str(label),
-            facet: <F as StringTyped>::from_cow_str(facet),
+            label: L::from_cow_str(label),
+            facet: F::from_cow_str(facet),
             props,
         };
         if !tag.is_valid() {
