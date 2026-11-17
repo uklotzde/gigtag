@@ -234,29 +234,20 @@ where
     /// Returns an [`fmt::Error`] if writing into the buffer fails.
     pub fn encode_into<W: fmt::Write>(&self, write: &mut W) -> fmt::Result {
         debug_assert!(self.is_valid());
-        let encoded_label = percent_encode(self.label().as_str().as_bytes(), encoding::LABEL);
         let encoded_facet = percent_encode(self.facet().as_str().as_bytes(), encoding::FACET);
-        if !self.has_props() {
-            #[expect(clippy::redundant_else)]
-            if self.has_label() {
-                return write.write_fmt(format_args!("{encoded_facet}#{encoded_label}"));
-            } else {
-                return write.write_fmt(format_args!("{encoded_facet}"));
-            }
-        }
-        let encoded_props_iter = self.props().iter().map(|Property { name, value }| {
+        write!(write, "{encoded_facet}")?;
+        let mut separator = '?';
+        for Property { name, value } in self.props() {
             let encoded_name = percent_encode(name.as_str().as_bytes(), encoding::PROPS);
-            let encoded_value = percent_encode(value.as_ref().as_bytes(), encoding::PROPS);
-            V::from_format_args(format_args!("{encoded_name}={encoded_value}"))
-        });
-        let encoded_props = itertools::join(encoded_props_iter, "&");
-        if self.has_label() {
-            write.write_fmt(format_args!(
-                "{encoded_facet}?{encoded_props}#{encoded_label}"
-            ))
-        } else {
-            write.write_fmt(format_args!("{encoded_facet}?{encoded_props}"))
+            let encoded_value = percent_encode(value.as_str().as_bytes(), encoding::PROPS);
+            write!(write, "{separator}{encoded_name}={encoded_value}")?;
+            separator = '&';
         }
+        if self.has_label() {
+            let encoded_label = percent_encode(self.label().as_str().as_bytes(), encoding::LABEL);
+            write!(write, "#{encoded_label}")?;
+        }
+        Ok(())
     }
 
     /// Encode a tag as a string.
