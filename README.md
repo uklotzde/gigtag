@@ -68,10 +68,13 @@ whitespace. Thus the remaining prefix after stripping the date-like suffix remai
 
 The following regular expressions could be used:
 
-| Regex                   | Description                                                     |
-| ----------------------- | --------------------------------------------------------------- |
-| `(^&vert;[^\s])@\d{8}$` | Recognize date-like facets                                      |
-| `[\s]+@\d{8}$`          | Reject facets with a date-like suffix if preceded by whitespace |
+| Regex                      | Description                                                     |
+| -------------------------- | --------------------------------------------------------------- |
+| `(^&vert;[^\s])@[0-9]{8}$` | Recognize date-like facets                                      |
+| `[\s]+@[0-9]{8}$`          | Reject facets with a date-like suffix if preceded by whitespace |
+
+Only the ASCII digits `0`-`9` are permitted. Note that `\d` might also match non-ASCII digits,
+depending on the regex engine.
 
 #### Valid examples
 

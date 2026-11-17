@@ -96,4 +96,23 @@ fn has_date_like_suffix() {
     assert!(!super::has_date_like_suffix("a @20220625"));
     assert!(!super::has_date_like_suffix("a-20220625"));
     assert!(!super::has_date_like_suffix("a20220625"));
+    assert!(!super::has_date_like_suffix("a\u{a0}@20220625"));
+}
+
+#[test]
+fn has_date_like_suffix_should_reject_non_ascii_digits() {
+    // Arabic-Indic digits
+    assert!(!super::has_date_like_suffix("@٠٠٠٠٠٠٠٠"));
+    assert!(!super::has_date_like_suffix("a@٢٠٢٢٠٦٢٥"));
+    assert!(!super::has_invalid_date_like_suffix("a @٢٠٢٢٠٦٢٥"));
+}
+
+#[test]
+fn has_invalid_date_like_suffix() {
+    assert!(super::has_invalid_date_like_suffix("a @20220625"));
+    assert!(super::has_invalid_date_like_suffix("a\t@20220625"));
+    assert!(super::has_invalid_date_like_suffix("a\u{a0}@20220625"));
+    assert!(!super::has_invalid_date_like_suffix("@20220625"));
+    assert!(!super::has_invalid_date_like_suffix("a@20220625"));
+    assert!(!super::has_invalid_date_like_suffix("a 20220625"));
 }

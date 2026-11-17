@@ -408,3 +408,16 @@ fn reorder_and_dedup2() {
         reencoded
     );
 }
+
+#[test]
+fn facet_with_non_ascii_digits_is_not_date_like() {
+    // Arabic-Indic digits, percent-encoded
+    let encoded = "@%D9%A0%D9%A0%D9%A0%D9%A0%D9%A0%D9%A0%D9%A0%D9%A0";
+    assert!(encoded.parse::<Tag>().is_err());
+    let mut decoded = DecodedTags::decode_str("@٠٠٠٠٠٠٠٠#label @20220625");
+    assert_eq!(2, decoded.tags.len());
+    assert!(!decoded.tags[0].facet().has_date_like_suffix());
+    // Must not panic
+    decoded.reorder_and_dedup();
+    assert_eq!("@٠٠٠٠٠٠٠٠", decoded.tags[0].facet());
+}

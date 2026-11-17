@@ -3,10 +3,9 @@
 
 //! Facets
 
-use std::{fmt, sync::OnceLock};
+use std::fmt;
 
 use jiff::{civil::Date, fmt::strtime};
-use regex::bytes::Regex;
 
 use crate::StringTyped;
 
@@ -29,7 +28,11 @@ pub fn is_empty(facet: &str) -> bool {
 #[must_use]
 pub fn has_date_like_suffix(facet: &str) -> bool {
     debug_assert!(is_valid(facet));
-    date_like_suffix_regex().is_match(facet.as_bytes())
+    // The '@' separator of the date-like digits must not be preceded by
+    // a whitespace i.e. the facet either equals the date-like suffix
+    // or the separator is preceded by a non-whitespace character.
+    try_split_into_prefix_and_date_like_suffix(facet)
+        .is_some_and(|(prefix, _)| !ends_with_whitespace(prefix))
 }
 
 /// Split a facet into a prefix and the date-like suffix.
@@ -72,34 +75,18 @@ const DATE_LIKE_SUFFIX_FORMAT: &str = "@%Y%m%d";
 // @yyyyMMdd
 const DATE_LIKE_SUFFIX_LEN: usize = 1 + 8;
 
-const DATE_LIKE_SUFFIX_REGEX_STR: &str = r"(^|[^\s])@\d{8}$";
-
-static DATE_LIKE_SUFFIX_REGEX: OnceLock<Regex> = OnceLock::new();
-
-#[must_use]
-fn date_like_suffix_regex() -> &'static Regex {
-    // The '@' separator of the date-like digits must not be preceded by
-    // a whitespace i.e. the facet either equals the date-like suffix
-    // or the separator is preceded by a non-whitespace character.
-    DATE_LIKE_SUFFIX_REGEX.get_or_init(|| DATE_LIKE_SUFFIX_REGEX_STR.parse().unwrap())
-}
-
-const INVALID_DATE_LIKE_SUFFIX_REGEX_STR: &str = r"[\s]+@\d{8}$";
-
-static INVALID_DATE_LIKE_SUFFIX_REGEX: OnceLock<Regex> = OnceLock::new();
-
-#[must_use]
-fn invalid_date_like_suffix_regex() -> &'static Regex {
-    // Reject facets with date-like suffixes that are preceded by a whitespace character
-    INVALID_DATE_LIKE_SUFFIX_REGEX
-        .get_or_init(|| INVALID_DATE_LIKE_SUFFIX_REGEX_STR.parse().unwrap())
-}
-
 /// Check a string for an invalid date-like suffix.
+///
+/// Date-like suffixes that are preceded by a whitespace character are invalid.
 #[must_use]
 pub fn has_invalid_date_like_suffix(facet: &str) -> bool {
     debug_assert!(is_valid(facet));
-    invalid_date_like_suffix_regex().is_match(facet.as_bytes())
+    try_split_into_prefix_and_date_like_suffix(facet)
+        .is_some_and(|(prefix, _)| ends_with_whitespace(prefix))
+}
+
+fn ends_with_whitespace(s: &str) -> bool {
+    s.chars().next_back().is_some_and(char::is_whitespace)
 }
 
 fn format_date_like_suffix(date: Date) -> Result<String, jiff::Error> {
