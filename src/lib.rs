@@ -497,7 +497,7 @@ where
     /// Encode the contents into a separate buffer.
     ///
     /// Adds a space character before the first encoded tag, if the
-    /// `undecodedPrefix` is not empty and does not end with a
+    /// `undecoded_prefix` is not empty and does not end with a
     /// whitespace character.
     ///
     /// # Errors
@@ -505,11 +505,41 @@ where
     /// Returns an [`fmt::Error`] if writing into the buffer fails.
     pub fn encode_into<W: fmt::Write>(&self, write: &mut W) -> fmt::Result {
         write.write_str(&self.undecoded_prefix)?;
-        // Append a separator before the first encoded tag of the undecoded prefix
-        // is not empty and does not end with a whitespace.
-        let mut append_separator = !self.undecoded_prefix.is_empty()
-            && self.undecoded_prefix.trim_end() == self.undecoded_prefix;
-        for tag in &self.tags {
+        let append_separator = Self::needs_separator_after_prefix(&self.undecoded_prefix);
+        Self::encode_tags_into(append_separator, &self.tags, write)
+    }
+
+    /// Re-encode the contents.
+    ///
+    /// Same as [`Self::encode_into()`], but reuses the buffer of
+    /// the `undecoded_prefix` for the result.
+    #[must_use]
+    pub fn reencode(self) -> String {
+        let mut reencoded = self.undecoded_prefix;
+        let append_separator = Self::needs_separator_after_prefix(&reencoded);
+        let result = Self::encode_tags_into(append_separator, &self.tags, &mut reencoded);
+        // Writing into a `String` never fails.
+        debug_assert!(result.is_ok());
+        reencoded
+    }
+
+    /// Check if a separator is needed between the undecoded prefix and the first tag.
+    ///
+    /// This is the case if the undecoded prefix is not empty and does not end
+    /// with a whitespace.
+    fn needs_separator_after_prefix(undecoded_prefix: &str) -> bool {
+        !undecoded_prefix.is_empty() && undecoded_prefix.trim_end() == undecoded_prefix
+    }
+
+    /// Encode tags separated by whitespace.
+    ///
+    /// If `append_separator` is `true` a separator is written before the first tag.
+    fn encode_tags_into<W: fmt::Write>(
+        mut append_separator: bool,
+        tags: &[Tag<F, L, N, V>],
+        write: &mut W,
+    ) -> fmt::Result {
+        for tag in tags {
             if append_separator {
                 write.write_char(JOIN_ENCODED_TOKENS_CHAR)?;
             }
@@ -517,26 +547,6 @@ where
             append_separator = true;
         }
         Ok(())
-    }
-
-    /// Re-encode the contents.
-    ///
-    /// # Errors
-    ///
-    /// Returns an [`fmt::Error`] if writing into the buffer fails.
-    pub fn reencode(self) -> Result<String, fmt::Error> {
-        let mut reencoded = self.undecoded_prefix;
-        // Append a separated before the first encoded tag of the undecoded prefix
-        // is not empty and does not end with a whitespace.
-        let mut append_separator = !reencoded.is_empty() && reencoded.trim_end() == reencoded;
-        for tag in &self.tags {
-            if append_separator {
-                reencoded.push(JOIN_ENCODED_TOKENS_CHAR);
-            }
-            tag.encode_into(&mut reencoded)?;
-            append_separator = true;
-        }
-        Ok(reencoded)
     }
 
     /// Reorder and deduplicate tags.
