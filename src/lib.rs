@@ -7,7 +7,7 @@
 
 pub mod docs;
 
-use std::{borrow::Cow, cmp::Ordering, fmt, str::FromStr, sync::OnceLock};
+use std::{borrow::Cow, cmp::Ordering, fmt, str::FromStr, sync::LazyLock};
 
 use anyhow::anyhow;
 use derive_more::{Display, Error};
@@ -282,16 +282,11 @@ pub enum DecodeError {
     Parse(anyhow::Error),
 }
 
-static DUMMY_BASE_URL_WITH_ABSOLUTE_PATH: OnceLock<Url> = OnceLock::new();
-
-fn dummy_base_url() -> &'static Url {
-    DUMMY_BASE_URL_WITH_ABSOLUTE_PATH.get_or_init(|| {
-        // Workaround to prevent RelativeUrlWithoutBase errors
-        // when parsing relative URLs. The leading slash has to
-        // be skipped in the resulting path.
-        "dummy:///".parse().unwrap()
-    })
-}
+// Workaround to prevent RelativeUrlWithoutBase errors
+// when parsing relative URLs. The leading slash has to
+// be skipped in the resulting path.
+static DUMMY_BASE_URL_WITH_ABSOLUTE_PATH: LazyLock<Url> =
+    LazyLock::new(|| "dummy:///".parse().unwrap());
 
 impl<F, L, N, V> Tag<F, L, N, V>
 where
@@ -326,13 +321,13 @@ where
                 "encoded input starts with leading slash `/`"
             )));
         }
-        let parse_options = Url::options().base_url(Some(dummy_base_url()));
+        let base_url = &*DUMMY_BASE_URL_WITH_ABSOLUTE_PATH;
+        let parse_options = Url::options().base_url(Some(base_url));
         let url: Url = parse_options
             .parse(encoded)
             .map_err(Into::into)
             .map_err(DecodeError::Parse)?;
-        if url.scheme() != dummy_base_url().scheme() || url.has_host() || !url.username().is_empty()
-        {
+        if url.scheme() != base_url.scheme() || url.has_host() || !url.username().is_empty() {
             return Err(DecodeError::Parse(anyhow!("invalid encoded input")));
         }
         let fragment = url.fragment().unwrap_or_default();
