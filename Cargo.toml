@@ -20,7 +20,7 @@ derive_more = { version = "2.1.1", features = ["display", "error"] }
 itertools = "0.15.0"
 percent-encoding = "2.3.2"
 regex = "1.13.1"
-jiff = { version = "0.2.38", default-features = false, features = ["std"] }
+jiff = { version = "1.0.0", default-features = false, features = ["std"] }
 url = "2.5.8"
 
 # Feature dependencies.
