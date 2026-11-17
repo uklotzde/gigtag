@@ -467,3 +467,74 @@ fn decoded_tags_should_stop_at_property_with_an_empty_name() {
     assert_eq!(0, decoded.tags.len());
     assert_eq!("#a facet?=value#b", decoded.undecoded_prefix);
 }
+
+#[test]
+fn tag_with_invalid_components_is_invalid() {
+    let valid = Tag {
+        label: "label".into(),
+        facet: "facet".into(),
+        props: vec![Property {
+            name: "name".into(),
+            value: "value".into(),
+        }],
+    };
+    assert!(valid.is_valid());
+
+    let invalid_tags = [
+        Tag {
+            label: " label".into(),
+            ..valid.clone()
+        },
+        Tag {
+            label: "/label".into(),
+            ..valid.clone()
+        },
+        Tag {
+            facet: "facet ".into(),
+            ..valid.clone()
+        },
+        Tag {
+            facet: "/facet".into(),
+            ..valid.clone()
+        },
+        Tag {
+            facet: "facet @20220625".into(),
+            ..valid.clone()
+        },
+        Tag {
+            props: vec![Property {
+                name: String::new(),
+                value: "value".into(),
+            }],
+            ..valid.clone()
+        },
+        Tag {
+            props: vec![Property {
+                name: "name ".into(),
+                value: "value".into(),
+            }],
+            ..valid.clone()
+        },
+    ];
+    for tag in invalid_tags {
+        // Must not panic on any debug assertions
+        assert!(!tag.is_valid(), "{tag:?}");
+    }
+}
+
+#[test]
+fn valid_tags_should_roundtrip() {
+    for encoded in [
+        "#label",
+        "facet#label",
+        "@20220625",
+        "facet@20220625",
+        "facet?name=value",
+        "facet?a=1&b=#label",
+        "a%20b@20220625?n%3Dx=v%26w#l%20m",
+    ] {
+        let tag = encoded.parse::<Tag>().unwrap();
+        assert!(tag.is_valid(), "{encoded}");
+        assert_eq!(tag, tag.encode().parse::<Tag>().unwrap(), "{encoded}");
+    }
+}

@@ -76,8 +76,12 @@ where
     }
 
     /// Check if the property is valid.
+    ///
+    /// The name must be valid and must not be empty.
     #[must_use]
     pub fn is_valid(&self) -> bool {
-        self.has_name()
+        // The name must be checked before invoking has_name(),
+        // which only debug-asserts its validity.
+        self.name.is_valid() && self.has_name()
     }
 }

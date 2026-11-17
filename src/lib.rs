@@ -161,8 +161,19 @@ where
     }
 
     /// Check if the tag is valid.
+    ///
+    /// Valid tags could be encoded and decoded again without loss.
     #[must_use]
     pub fn is_valid(&self) -> bool {
+        // The components must be checked before invoking any of the
+        // accessors, which only debug-assert their validity.
+        if !self.label.is_valid()
+            || !self.facet.is_valid()
+            || facet::has_invalid_date_like_suffix(self.facet.as_ref())
+            || !self.props.iter().all(Property::is_valid)
+        {
+            return false;
+        }
         self.has_label()
             || (self.has_facet() && (self.has_props() || self.facet().has_date_like_suffix()))
     }
