@@ -421,3 +421,23 @@ fn facet_with_non_ascii_digits_is_not_date_like() {
     decoded.reorder_and_dedup();
     assert_eq!("@٠٠٠٠٠٠٠٠", decoded.tags[0].facet());
 }
+
+#[test]
+fn decode_tags_separated_by_multi_byte_whitespace() {
+    // U+00A0 (no-break space, 2 bytes) and U+3000 (ideographic space, 3 bytes)
+    let decoded = DecodedTags::decode_str("prefix\u{a0}#a\u{3000}#b");
+    assert_eq!(2, decoded.tags.len());
+    assert_eq!("a", decoded.tags[0].label());
+    assert_eq!("b", decoded.tags[1].label());
+    assert_eq!("prefix\u{a0}", decoded.undecoded_prefix);
+
+    // Only multi-byte whitespace before the first tag is discarded
+    let decoded = DecodedTags::decode_str("\u{3000}#a");
+    assert_eq!(1, decoded.tags.len());
+    assert_eq!("", decoded.undecoded_prefix);
+
+    // Undecodable token after multi-byte whitespace
+    let decoded = DecodedTags::decode_str("#a\u{a0}/b");
+    assert_eq!(0, decoded.tags.len());
+    assert_eq!("#a\u{a0}/b", decoded.undecoded_prefix);
+}

@@ -452,10 +452,10 @@ where
                 break;
             }
             let (next_remainder, next_token) =
-                if let Some((i, _)) = remainder.rmatch_indices(char::is_whitespace).next() {
-                    debug_assert!(i < remainder.len());
-                    // Next token might be preceded by whitespace
-                    (&remainder[..=i], &remainder[i + 1..])
+                if let Some((i, ws)) = remainder.rmatch_indices(char::is_whitespace).next() {
+                    // Next token might be preceded by whitespace. The whitespace
+                    // character might be encoded with multiple bytes, e.g. U+00A0.
+                    remainder.split_at(i + ws.len())
                 } else {
                     // First token without leading whitespace
                     ("", remainder)
