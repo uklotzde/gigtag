@@ -12,7 +12,7 @@ keywords = ["music", "dj", "metadata", "tagging"]
 categories = ["parser-implementations"]
 edition = "2024"
 include = ["README.md", "LICENSES/", "src/"]
-rust-version = "1.99"
+rust-version = "1.100"
 
 [dependencies]
 anyhow = "1.0.104"
