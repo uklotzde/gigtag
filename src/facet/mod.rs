@@ -36,16 +36,24 @@ pub fn has_date_like_suffix(facet: &str) -> bool {
 #[must_use]
 pub fn try_split_into_prefix_and_date_like_suffix(facet: &str) -> Option<(&str, &str)> {
     debug_assert!(is_valid(facet));
-    if facet.len() < DATE_LIKE_SUFFIX_LEN {
+    let prefix_len = facet.len().checked_sub(DATE_LIKE_SUFFIX_LEN)?;
+    // Fails if `prefix_len` is not on a char boundary, i.e. if the
+    // suffix would start in the middle of a multi-byte character.
+    let (prefix, date_suffix) = facet.split_at_checked(prefix_len)?;
+    if !is_date_like_suffix(date_suffix) {
         return None;
     }
-    let prefix_len = facet.len() - DATE_LIKE_SUFFIX_LEN;
-    let date_suffix = &facet[prefix_len..];
-    if !date_suffix.is_ascii() {
-        return None;
-    }
-    let prefix = &facet[..prefix_len];
     (prefix, date_suffix).into()
+}
+
+/// Check if the given string matches the date-like format `@yyyyMMdd`.
+///
+/// Only ASCII digits are accepted.
+fn is_date_like_suffix(suffix: &str) -> bool {
+    let Some(digits) = suffix.strip_prefix('@') else {
+        return false;
+    };
+    digits.len() == DATE_LIKE_SUFFIX_LEN - 1 && digits.bytes().all(|b| b.is_ascii_digit())
 }
 
 /// Split a facet into a prefix and parse the date suffix.
