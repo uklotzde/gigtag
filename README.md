@@ -124,7 +124,7 @@ The following table defines the component mapping:
 | Tag component      | URI component                                          | Percent-encoded character set                                                                               |
 | ------------------ | ------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
 | label              | [fragment](https://en.wikipedia.org/wiki/URI_fragment) | [_fragment percent-encode set_](https://url.spec.whatwg.org/#fragment-percent-encode-set) + `'%'`           |
-| facet              | path                                                   | [_path percent-encode set_](https://url.spec.whatwg.org/#path-percent-encode-set) + `'%'`                   |
+| facet              | path                                                   | [_path percent-encode set_](https://url.spec.whatwg.org/#path-percent-encode-set) + `'%'` + `':'`           |
 | props (name/value) | [query](https://en.wikipedia.org/wiki/Query_string)    | [_query percent-encode set_](https://url.spec.whatwg.org/#query-percent-encode-set) + `'%'` + `'&'` + `'='` |
 
 Tags, respective their URIs, are serialized as text and the components are
@@ -153,6 +153,7 @@ The following tokens do not represent valid _gig tags_:
 | Encoded                      | Comment                                                            |
 | ---------------------------- | ------------------------------------------------------------------ |
 | `https://#MyTag`             | URL scheme/authority are present                                   |
+| `genre:house#MyTag`          | URL scheme `genre` is present, the colon must be percent-encoded   |
 | `My%20Tag`                   | Only a facet without a date, neither a label nor props             |
 | `/my-facet#Label`            | Facet starts with a `/`                                            |
 | `wishlist%20@20220625#Label` | Date suffix in facet is prefixed by whitespace                     |

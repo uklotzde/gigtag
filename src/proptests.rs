@@ -12,8 +12,8 @@ type DecodedTags = super::DecodedTags<String, String, String, String>;
 
 /// Characters with a special meaning for encoding, decoding, or tokenizing.
 const SPECIAL_CHARS: &[char] = &[
-    ' ', '\t', '\n', '\r', '\u{a0}', '\u{3000}', '/', '\\', '.', '#', '?', '&', '=', '%', '@', '+',
-    '0', '9', 'ä', '٠', '😀',
+    ' ', '\t', '\n', '\r', '\u{a0}', '\u{3000}', '/', '\\', '.', ':', '#', '?', '&', '=', '%', '@',
+    '+', '0', '9', 'ä', '٠', '😀',
 ];
 
 fn any_char() -> impl Strategy<Value = char> {
@@ -50,11 +50,10 @@ fn date_like_suffix() -> impl Strategy<Value = String> {
 
 /// TODO: Known bugs, these facets do not survive an encode/decode round trip.
 ///
-/// The URL parser removes dot segments `.` and `..` from the path,
-/// treats backslashes `\\` like slashes `/`, and interprets a prefix
-/// that is terminated by a colon `:` as the URL scheme.
+/// The URL parser removes dot segments `.` and `..` from the path and
+/// treats backslashes `\` like slashes `/`.
 fn is_affected_by_url_parsing(facet: &str) -> bool {
-    facet.contains(['\\', ':'])
+    facet.contains('\\')
         || facet
             .split('/')
             .any(|segment| matches!(segment, "." | ".."))

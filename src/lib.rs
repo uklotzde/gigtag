@@ -215,7 +215,9 @@ mod encoding {
     /// <https://url.spec.whatwg.org/#path-percent-encode-set>
     const PATH: &AsciiSet = &QUERY.add(b'`').add(b'?').add(b'{').add(b'}');
 
-    pub(super) const FACET: &AsciiSet = PATH;
+    /// The colon `:` is added to prevent that a facet prefix is
+    /// interpreted as the URL scheme, e.g. `genre` in `genre:house`.
+    pub(super) const FACET: &AsciiSet = &PATH.add(b':');
 }
 
 impl<F, L, N, V> Tag<F, L, N, V>

@@ -139,7 +139,7 @@ fn encode_decode_reserved_and_special_characters() {
     let label = String::from_str_slice("!#$&'()*+,/:;=?@[]%Label~!#$&'()*+,/:;=?@[]");
     let encoded_label = "!#$&'()*+,/:;=?@[]%25Label~!#$&'()*+,/:;=?@[]";
     let facet = String::from_str_slice("!#$&'()*+,/:;=?@[]%Facet~!#$&'()*+,/:;=?@[]");
-    let encoded_facet = "!%23$&'()*+,/:;=%3F@[]%25Facet~!%23$&'()*+,/:;=%3F@[]";
+    let encoded_facet = "!%23$&'()*+,/%3A;=%3F@[]%25Facet~!%23$&'()*+,/%3A;=%3F@[]";
     let props = vec![Property {
         name: String::from_str_slice("!#$&'()*+,/:;=?@[]%Name~!#$&'()*+,/:;=?@[]"),
         value: String::from_str_slice("!#$&'()*+,/:;=?@[]%Value~!#$&'()*+,/:;=?@[]"),
@@ -557,4 +557,27 @@ fn decode_should_reject_input_with_an_empty_authority() {
     let decoded = DecodedTags::decode_str("#label \\/");
     assert_eq!(0, decoded.tags.len());
     assert_eq!("#label \\/", decoded.undecoded_prefix);
+}
+
+#[test]
+fn encode_and_decode_facet_with_colon() {
+    let tag = Tag {
+        label: "label".into(),
+        facet: "genre:house".into(),
+        ..Default::default()
+    };
+    let encoded = tag.encode();
+    assert_eq!("genre%3Ahouse#label", encoded);
+    assert_eq!(tag, encoded.parse().unwrap());
+    // A raw colon is interpreted as URL scheme separator
+    assert!("genre:house#label".parse::<Tag>().is_err());
+}
+
+#[test]
+fn decode_facet_with_unencoded_colon_after_slash() {
+    // Previously encoded tags with a colon after the first slash
+    // in the facet are still decoded.
+    let tag = "a/b:c#label".parse::<Tag>().unwrap();
+    assert_eq!("a/b:c", tag.facet());
+    assert_eq!("a/b%3Ac#label", tag.encode());
 }
