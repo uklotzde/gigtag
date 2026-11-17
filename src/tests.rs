@@ -441,3 +441,29 @@ fn decode_tags_separated_by_multi_byte_whitespace() {
     assert_eq!(0, decoded.tags.len());
     assert_eq!("#a\u{a0}/b", decoded.undecoded_prefix);
 }
+
+#[test]
+fn decode_should_reject_properties_with_an_empty_name() {
+    for encoded in [
+        "facet?=value#label",
+        "facet?=#label",
+        "facet?a=1&&b=2#label",
+        "facet?&a=1#label",
+        "facet?a=1&#label",
+        "facet?&",
+        "@20220625?=value",
+    ] {
+        assert!(encoded.parse::<Tag>().is_err(), "{encoded}");
+    }
+    // Empty values are still permitted
+    let tag = "facet?a=&b#label".parse::<Tag>().unwrap();
+    assert!(tag.props().iter().all(Property::is_valid));
+    assert_eq!(2, tag.props().len());
+}
+
+#[test]
+fn decoded_tags_should_stop_at_property_with_an_empty_name() {
+    let decoded = DecodedTags::decode_str("#a facet?=value#b");
+    assert_eq!(0, decoded.tags.len());
+    assert_eq!("#a facet?=value#b", decoded.undecoded_prefix);
+}

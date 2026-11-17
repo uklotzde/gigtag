@@ -360,9 +360,12 @@ where
             let query_encoded = query.as_bytes();
             for name_value_encoded in query_encoded.split(|b| *b == b'&') {
                 let mut name_value_encoded_split = name_value_encoded.split(|b| *b == b'=');
-                let Some(name_encoded) = name_value_encoded_split.next() else {
+                // Empty properties, e.g. caused by consecutive `&` separators,
+                // and properties with an empty name like `=value` are rejected.
+                let name_encoded = name_value_encoded_split.next().unwrap_or_default();
+                if name_encoded.is_empty() {
                     return Err(DecodeError::Parse(anyhow!("missing property name")));
-                };
+                }
                 let value_encoded = name_value_encoded_split.next().unwrap_or_default();
                 if name_value_encoded_split.next().is_some() {
                     return Err(DecodeError::Parse(anyhow!(
