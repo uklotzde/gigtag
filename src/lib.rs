@@ -288,6 +288,13 @@ pub enum DecodeError {
 static DUMMY_BASE_URL_WITH_ABSOLUTE_PATH: LazyLock<Url> =
     LazyLock::new(|| "dummy:///".parse().unwrap());
 
+/// Percent-decode the input as a UTF-8 string.
+fn percent_decode_utf8(encoded: &[u8]) -> Result<Cow<'_, str>, DecodeError> {
+    percent_decode(encoded)
+        .decode_utf8()
+        .map_err(|err| DecodeError::Parse(err.into()))
+}
+
 impl<F, L, N, V> Tag<F, L, N, V>
 where
     F: Facet,
@@ -307,36 +314,30 @@ where
     ///
     /// Returns a [`DecodeError`] if the encoded input cannot be decoded as a valid tag.
     pub fn decode_str(encoded: &str) -> Result<Self, DecodeError> {
-        let encoded_trimmed = encoded.trim();
-        if encoded_trimmed != encoded {
+        if encoded.trim() != encoded {
             return Err(DecodeError::Parse(anyhow!(
                 "leading/trailing whitespace in encoded input"
             )));
         }
-        if encoded_trimmed.is_empty() {
+        if encoded.is_empty() {
             return Err(DecodeError::Parse(anyhow!("empty encoded input")));
         }
-        if encoded_trimmed.as_bytes().first() == Some(&b'/') {
+        if encoded.starts_with('/') {
             return Err(DecodeError::Parse(anyhow!(
                 "encoded input starts with leading slash `/`"
             )));
         }
         let base_url = &*DUMMY_BASE_URL_WITH_ABSOLUTE_PATH;
         let parse_options = Url::options().base_url(Some(base_url));
-        let url: Url = parse_options
+        let url = parse_options
             .parse(encoded)
-            .map_err(Into::into)
-            .map_err(DecodeError::Parse)?;
+            .map_err(|err| DecodeError::Parse(err.into()))?;
         if url.scheme() != base_url.scheme() || url.has_host() || !url.username().is_empty() {
             return Err(DecodeError::Parse(anyhow!("invalid encoded input")));
         }
         let fragment = url.fragment().unwrap_or_default();
         debug_assert_eq!(fragment.trim(), fragment);
-        let label_encoded = fragment.as_bytes();
-        let label = percent_decode(label_encoded)
-            .decode_utf8()
-            .map_err(Into::into)
-            .map_err(DecodeError::Parse)?;
+        let label = percent_decode_utf8(fragment.as_bytes())?;
         if !label::is_valid(&label) {
             return Err(DecodeError::Parse(anyhow!("invalid label '{label}'")));
         }
@@ -344,12 +345,8 @@ where
         let path = url.path();
         debug_assert_ne!(path, "");
         debug_assert_eq!(path.trim(), path);
-        debug_assert_eq!(path.as_bytes()[0], b'/');
-        let facet_encoded = &url.path().as_bytes()[1..];
-        let facet = percent_decode(facet_encoded)
-            .decode_utf8()
-            .map_err(Into::into)
-            .map_err(DecodeError::Parse)?;
+        debug_assert!(path.starts_with('/'));
+        let facet = percent_decode_utf8(&path.as_bytes()[1..])?;
         if !facet::is_valid(&facet) {
             return Err(DecodeError::Parse(anyhow!("invalid facet '{facet}'")));
         }
@@ -380,19 +377,13 @@ where
                             .unwrap_or_default()
                     )));
                 }
-                let name = percent_decode(name_encoded)
-                    .decode_utf8()
-                    .map_err(Into::into)
-                    .map_err(DecodeError::Parse)?;
+                let name = percent_decode_utf8(name_encoded)?;
                 if !props::is_name_valid(&name) {
                     return Err(DecodeError::Parse(anyhow!(
                         "invalid property name '{name}'"
                     )));
                 }
-                let value = percent_decode(value_encoded)
-                    .decode_utf8()
-                    .map_err(Into::into)
-                    .map_err(DecodeError::Parse)?;
+                let value = percent_decode_utf8(value_encoded)?;
                 let prop = Property {
                     name: N::from_cow_str(name),
                     value: V::from_cow_str(value),
