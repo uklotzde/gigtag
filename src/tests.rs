@@ -481,6 +481,10 @@ fn tag_with_invalid_components_is_invalid() {
 
     let invalid_tags = [
         Tag {
+            facet: "a/../b".into(),
+            ..valid.clone()
+        },
+        Tag {
             label: " label".into(),
             ..valid.clone()
         },
@@ -665,14 +669,4 @@ fn decode_should_reject_dot_segments_in_facet() {
     let tag = "%252E#label".parse::<Tag>().unwrap();
     assert_eq!("%2E", tag.facet());
     assert_eq!("%252E#label", tag.encode());
-}
-
-#[test]
-fn tag_with_dot_segments_in_facet_is_invalid() {
-    let tag = Tag {
-        label: "label".into(),
-        facet: "a/../b".into(),
-        ..Default::default()
-    };
-    assert!(!tag.is_valid());
 }

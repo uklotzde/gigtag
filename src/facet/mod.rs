@@ -22,9 +22,11 @@ pub fn is_valid(facet: &str) -> bool {
 ///
 /// The URL parser removes those segments from the path.
 fn has_dot_segment(facet: &str) -> bool {
-    facet
-        .split('/')
-        .any(|segment| matches!(segment, "." | ".."))
+    facet.split('/').any(is_dot_segment)
+}
+
+fn is_dot_segment(segment: &str) -> bool {
+    matches!(segment, "." | "..")
 }
 
 /// Check if any of the segments of the encoded facet is `.` or `..`.
@@ -32,9 +34,9 @@ fn has_dot_segment(facet: &str) -> bool {
 /// The URL parser also removes percent-encoded dot segments like `%2E`
 /// from the path. These cannot be detected after parsing the URL.
 pub(crate) fn has_encoded_dot_segment(facet_encoded: &str) -> bool {
+    // Segments must be decoded separately, i.e. `%2F` is not a separator.
     facet_encoded.split('/').any(|segment| {
-        let decoded = percent_encoding::percent_decode_str(segment);
-        decoded.clone().eq(*b".") || decoded.eq(*b"..")
+        is_dot_segment(&percent_encoding::percent_decode_str(segment).decode_utf8_lossy())
     })
 }
 
@@ -48,12 +50,19 @@ pub fn is_empty(facet: &str) -> bool {
 /// Check for a date-like suffix in the facet.
 #[must_use]
 pub fn has_date_like_suffix(facet: &str) -> bool {
+    date_like_suffix(facet).is_some()
+}
+
+/// Get the valid date-like suffix of the facet.
+///
+/// The '@' separator of the date-like digits must not be preceded by
+/// a whitespace i.e. the facet either equals the date-like suffix
+/// or the separator is preceded by a non-whitespace character.
+pub(crate) fn date_like_suffix(facet: &str) -> Option<&str> {
     debug_assert!(is_valid(facet));
-    // The '@' separator of the date-like digits must not be preceded by
-    // a whitespace i.e. the facet either equals the date-like suffix
-    // or the separator is preceded by a non-whitespace character.
     try_split_into_prefix_and_date_like_suffix(facet)
-        .is_some_and(|(prefix, _)| !ends_with_whitespace(prefix))
+        .filter(|(prefix, _)| !ends_with_whitespace(prefix))
+        .map(|(_, suffix)| suffix)
 }
 
 /// Split a facet into a prefix and the date-like suffix.

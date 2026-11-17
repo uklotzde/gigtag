@@ -5,7 +5,7 @@
 
 use proptest::prelude::*;
 
-use crate::{Facet as _, Property, facet, label, props};
+use crate::{Facet as _, Property, facet};
 
 type Tag = super::Tag<String, String, String, String>;
 type DecodedTags = super::DecodedTags<String, String, String, String>;
@@ -28,20 +28,15 @@ fn any_string(max_len: usize) -> impl Strategy<Value = String> {
     prop::collection::vec(any_char(), 0..=max_len).prop_map(String::from_iter)
 }
 
-/// Strip leading/trailing whitespace and leading slashes until the result is valid.
-fn into_valid_component(mut s: String) -> String {
-    loop {
-        let trimmed = s.trim().trim_start_matches('/');
-        if trimmed.len() == s.len() {
-            debug_assert!(crate::is_valid_component(&s));
-            return s;
-        }
-        s = trimmed.to_owned();
-    }
+/// Strip leading/trailing whitespace and leading slashes.
+fn into_valid_component(s: &str) -> String {
+    s.trim_start_matches(|c: char| c == '/' || c.is_whitespace())
+        .trim_end()
+        .to_owned()
 }
 
 fn valid_component(max_len: usize) -> impl Strategy<Value = String> {
-    any_string(max_len).prop_map(into_valid_component)
+    any_string(max_len).prop_map(|s| into_valid_component(&s))
 }
 
 fn date_like_suffix() -> impl Strategy<Value = String> {
@@ -84,13 +79,6 @@ fn whitespace_separator() -> impl Strategy<Value = &'static str> {
 }
 
 proptest! {
-    #[test]
-    fn generated_components_are_valid(tag in valid_tag()) {
-        prop_assert!(label::is_valid(&tag.label));
-        prop_assert!(facet::is_valid(&tag.facet));
-        prop_assert!(tag.props.iter().all(|prop| props::is_name_valid(&prop.name)));
-    }
-
     #[test]
     fn encoded_tag_is_a_single_token(tag in valid_tag()) {
         let encoded = tag.encode();

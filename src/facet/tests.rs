@@ -52,37 +52,27 @@ fn try_split_into_prefix_and_date_like_suffix_should_accept_invalid_dates() {
 }
 
 #[test]
-fn try_split_into_prefix_and_date_like_suffix_should_not_panic_on_non_char_boundary() {
-    // The suffix would start in the middle of the 2-byte char 'ä'.
-    assert_eq!(
-        None,
-        super::try_split_into_prefix_and_date_like_suffix("ä12345678")
-    );
-    assert_eq!(
-        None,
-        super::try_split_into_prefix_and_parse_date_suffix("ä12345678")
-    );
-    // Non-ASCII digits would put the split inside a multi-byte char.
-    assert_eq!(
-        None,
-        super::try_split_into_prefix_and_date_like_suffix("@٠٠٠٠٠٠٠٠")
-    );
-}
-
-#[test]
 fn try_split_into_prefix_and_date_like_suffix_should_reject_non_date_like_suffixes() {
-    assert_eq!(
-        None,
-        super::try_split_into_prefix_and_date_like_suffix("abcdefghi")
-    );
-    assert_eq!(
-        None,
-        super::try_split_into_prefix_and_date_like_suffix("a-20220625")
-    );
-    assert_eq!(
-        None,
-        super::try_split_into_prefix_and_date_like_suffix("@2022062x")
-    );
+    for facet in [
+        // The suffix would start in the middle of the 2-byte char 'ä'.
+        "ä12345678",
+        // Non-ASCII digits would put the split inside a multi-byte char.
+        "@٠٠٠٠٠٠٠٠",
+        "abcdefghi",
+        "a-20220625",
+        "@2022062x",
+    ] {
+        assert_eq!(
+            None,
+            super::try_split_into_prefix_and_date_like_suffix(facet),
+            "{facet}"
+        );
+        assert_eq!(
+            None,
+            super::try_split_into_prefix_and_parse_date_suffix(facet),
+            "{facet}"
+        );
+    }
     assert_eq!(
         Some(("ä", "@20220625")),
         super::try_split_into_prefix_and_date_like_suffix("ä@20220625")

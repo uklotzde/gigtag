@@ -7,7 +7,7 @@
 
 pub mod docs;
 
-use std::{borrow::Cow, fmt, str::FromStr, sync::LazyLock};
+use std::{borrow::Cow, cmp::Reverse, fmt, str::FromStr, sync::LazyLock};
 
 use anyhow::anyhow;
 use derive_more::{Display, Error};
@@ -397,9 +397,7 @@ where
                 if name_value_encoded_split.next().is_some() {
                     return Err(DecodeError::Parse(anyhow!(
                         "malformed name=value property '{name_value}'",
-                        name_value = percent_decode(name_value_encoded)
-                            .decode_utf8()
-                            .unwrap_or_default()
+                        name_value = percent_decode(name_value_encoded).decode_utf8_lossy()
                     )));
                 }
                 let name = percent_decode_utf8(name_encoded)?;
@@ -573,12 +571,6 @@ where
     /// Tags with a date-like facet are sorted in descending order by their
     /// date-like suffix, i.e. newer dates are sorted before older dates.
     pub fn reorder_and_dedup(&mut self) {
-        fn date_like_suffix<F: Facet>(facet: &F) -> Option<&str> {
-            facet
-                .try_split_into_prefix_and_date_like_suffix()
-                .filter(|_| facet.has_date_like_suffix())
-                .map(|(_, suffix)| suffix)
-        }
         fn props_key<N: Name, V: Value>(
             props: &[Property<N, V>],
         ) -> impl Iterator<Item = (&str, &str)> {
@@ -587,15 +579,13 @@ where
                 .map(|prop| (prop.name().as_str(), prop.value().as_str()))
         }
         self.tags.sort_by(|lhs, rhs| {
-            let lhs_date_like_suffix = date_like_suffix(lhs.facet());
-            let rhs_date_like_suffix = date_like_suffix(rhs.facet());
-            let lhs_is_date_like = lhs_date_like_suffix.is_some();
-            let rhs_is_date_like = rhs_date_like_suffix.is_some();
-            // Tags with a date-like facet after all other tags
-            lhs_is_date_like
-                .cmp(&rhs_is_date_like)
-                // Descending order by decimal digits encoded as ASCII chars
-                .then_with(|| rhs_date_like_suffix.cmp(&lhs_date_like_suffix))
+            let lhs_date_like_suffix = facet::date_like_suffix(lhs.facet().as_str());
+            let rhs_date_like_suffix = facet::date_like_suffix(rhs.facet().as_str());
+            // Tags with a date-like facet after all other tags (`None` < `Some`),
+            // in descending order by decimal digits encoded as ASCII chars
+            lhs_date_like_suffix
+                .map(Reverse)
+                .cmp(&rhs_date_like_suffix.map(Reverse))
                 // Tags without a facet before tags with a facet
                 .then_with(|| lhs.has_facet().cmp(&rhs.has_facet()))
                 .then_with(|| lhs.facet().cmp(rhs.facet()))
