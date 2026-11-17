@@ -546,3 +546,15 @@ fn reorder_and_dedup_non_adjacent_tags_with_properties() {
     decoded.reorder_and_dedup();
     assert_eq!("f#a f?p=1#a f?p=1&q=0#a f?p=2#a", decoded.reencode());
 }
+
+#[test]
+fn decode_should_reject_input_with_an_empty_authority() {
+    // The URL parser treats backslashes like slashes and strips
+    // leading control characters, resulting in an empty path.
+    for encoded in ["\\/", "\\\\", "\\\\#label", "\0//", "\0//#label"] {
+        assert!(Tag::decode_str(encoded).is_err(), "{encoded:?}");
+    }
+    let decoded = DecodedTags::decode_str("#label \\/");
+    assert_eq!(0, decoded.tags.len());
+    assert_eq!("#label \\/", decoded.undecoded_prefix);
+}

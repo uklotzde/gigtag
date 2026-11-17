@@ -342,11 +342,14 @@ where
             return Err(DecodeError::Parse(anyhow!("invalid label '{label}'")));
         }
         // The leading slash in the path from the dummy base URL needs to be skipped.
+        // The path is empty if the URL parser recognized an empty authority,
+        // e.g. for inputs like `\\/` or `\0//`.
         let path = url.path();
-        debug_assert_ne!(path, "");
         debug_assert_eq!(path.trim(), path);
-        debug_assert!(path.starts_with('/'));
-        let facet = percent_decode_utf8(&path.as_bytes()[1..])?;
+        let Some(facet_encoded) = path.strip_prefix('/') else {
+            return Err(DecodeError::Parse(anyhow!("invalid encoded input")));
+        };
+        let facet = percent_decode_utf8(facet_encoded.as_bytes())?;
         if !facet::is_valid(&facet) {
             return Err(DecodeError::Parse(anyhow!("invalid facet '{facet}'")));
         }
